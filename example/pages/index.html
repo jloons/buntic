@@ -1,0 +1,38 @@
+<layout src="main.html">
+  <span slot="title">Inicio - {{site.title}}</span>
+
+  <section class="hero">
+    <h1>Bienvenido a {{site.title}}</h1>
+    <p>{{site.description}}</p>
+  </section>
+
+  <section class="grid">
+    <component 
+      src="card.html" 
+      title="⚡ 100% Nativo de Bun" 
+      description="Aprovecha Bun.build, Bun.serve y HTMLRewriter sin descargar librerías pesadas de terceros.">
+    </component>
+
+    <component 
+      src="card.html" 
+      title="📦 Cero Dependencias" 
+      description="Menos vulnerabilidades, instalación instantánea y rendimiento de vanguardia.">
+    </component>
+
+    <component 
+      src="card.html" 
+      title="🧩 Web Components Nativos" 
+      description="Reactividad del lado del cliente utilizando solo estándares web de los navegadores modernos.">
+    </component>
+  </section>
+
+  <section class="interactive-box">
+    <h2>Demostración de Web Component Reactivo</h2>
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+      Este botón interactivo está construido con un Web Component nativo empaquetado por Bun:
+    </p>
+    <counter-button></counter-button>
+  </section>
+
+  <script type="module" src="/components/counter.ts"></script>
+</layout>

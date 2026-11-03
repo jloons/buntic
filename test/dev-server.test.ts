@@ -1,0 +1,41 @@
+import { describe, test, expect } from "bun:test";
+import { resolveConfig } from "../src/config.ts";
+import { startDevServer } from "../src/server/dev.ts";
+import { join } from "node:path";
+
+describe("DevServer", () => {
+  test("serves pages with live-reload and static assets", async () => {
+    const exampleDir = join(import.meta.dir, "../example");
+    const config = await resolveConfig(exampleDir, { port: 38899 });
+    const dev = startDevServer(config);
+
+    try {
+      // 1. Root page
+      const res = await fetch(`http://localhost:${dev.port}/`);
+      expect(res.status).toBe(200);
+      const html = await res.text();
+      expect(html).toContain("Inicio - Bustatic");
+      expect(html).toContain("__bustatic_live_reload");
+
+      // 2. Subpage
+      const resAbout = await fetch(`http://localhost:${dev.port}/about`);
+      expect(resAbout.status).toBe(200);
+      const aboutHtml = await resAbout.text();
+      expect(aboutHtml).toContain("Acerca de Bustatic");
+
+      // 3. Static CSS asset
+      const resCss = await fetch(`http://localhost:${dev.port}/styles/main.css`);
+      expect(resCss.status).toBe(200);
+      const cssText = await resCss.text();
+      expect(cssText).toContain("--bg-color");
+
+      // 4. Public asset
+      const resRobots = await fetch(`http://localhost:${dev.port}/robots.txt`);
+      expect(resRobots.status).toBe(200);
+      const robotsText = await resRobots.text();
+      expect(robotsText).toContain("User-agent: *");
+    } finally {
+      dev.stop();
+    }
+  });
+});

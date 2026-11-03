@@ -1,0 +1,23 @@
+<layout src="main.html">
+  <span slot="title">Acerca de - {{site.title}}</span>
+
+  <section class="hero">
+    <h1>Acerca de {{site.title}}</h1>
+    <p>La alternativa ligera e intuitiva para generar sitios estáticos.</p>
+  </section>
+
+  <article style="max-width: 700px; margin: 0 auto; line-height: 1.8;">
+    <p style="margin-bottom: 1.5rem;">
+      <strong>Bustatic</strong> nace como una respuesta a la creciente complejidad y peso de los meta-frameworks actuales. 
+      En lugar de requerir cientos de megabytes en node_modules y nuevos dialectos de archivos, 
+      Bustatic demuestra que con <em>HTML estándar</em>, <em>CSS</em>, <em>JavaScript/TypeScript</em> y el runtime de <strong>Bun</strong>, 
+      tenemos todo lo necesario para crear sitios web profesionales, rápidos y mantenibles.
+    </p>
+
+    <component 
+      src="card.html" 
+      title="💡 Filosofía" 
+      description="Si el navegador y Bun ya resuelven el problema de forma nativa, no añadimos una capa extra.">
+    </component>
+  </article>
+</layout>
