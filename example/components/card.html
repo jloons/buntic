@@ -1,5 +1,8 @@
 <div class="card">
-  <h3>{{title}}</h3>
+  <div class="card-header">
+    <h3>{{title}}</h3>
+    <span class="badge" if="badge">{{badge}}</span>
+  </div>
   <p>{{description}}</p>
   <div class="card-extra">
     <slot></slot>

@@ -86,7 +86,75 @@ Los componentes son fragmentos HTML reutilizables. Puedes ubicarlos en `componen
 
 ---
 
-## 3. Inyección de Datos JSON
+## 3. Iteración con `<each>` y Auto-Spread de Props
+
+La directiva `<each>` te permite iterar arrays desde un archivo JSON externo (`src`) o desde variables ya presentes en memoria (`in`).
+
+### Iterar archivo JSON con Auto-Spread a `<component>`
+Si el bloque contiene un `<component>`, las claves del objeto JSON se inyectan automáticamente como props del componente (equivalente a `{...props}` en JSX):
+
+```html
+<!-- Cero boilerplate: cada objeto inyecta sus claves automáticamente -->
+<each src="../data/features.json">
+  <component src="../components/card.html" />
+</each>
+```
+
+### Iterar con alias explícito (`as="item"`):
+```html
+<each src="../data/features.json" as="item">
+  <component src="../components/card.html" title="{{item.title}}" description="{{item.description}}" />
+</each>
+```
+
+### Iterar colecciones en memoria y elementos HTML estándar:
+```html
+<nav>
+  <each in="site.navLinks" as="link">
+    <a href="{{link.url}}">{{link.label}}</a>
+  </each>
+</nav>
+```
+
+---
+
+## 4. Renderizado Condicional y Atributos Opcionales
+
+Para evitar dejar elementos vacíos en el DOM cuando un atributo opcional no viene en los datos:
+
+### Opción A: Atributo condicional `if="..."` (en cualquier etiqueta)
+Elimina **todo el elemento o subcomponente** si la variable no existe o es falsa/vacía:
+
+```html
+<!-- Si badge no viene en el JSON, todo el <span> desaparece sin dejar rastro -->
+<span class="badge" if="badge">{{badge}}</span>
+
+<!-- Funciona en subcomponentes enteros -->
+<component src="./boton.html" if="url" href="{{url}}" />
+```
+
+### Opción B: Bloque condicional `<if is="...">` con `<else>`
+Para bloques multilínea o bifurcaciones de lógica:
+
+```html
+<if is="isOnline">
+  <span class="status online">En Línea</span>
+  <else>
+    <span class="status offline">Desconectado</span>
+  </else>
+</if>
+```
+
+### Opción C: Operador de Respaldo (`??`)
+Para textos simples con valor por defecto cuando no necesitas borrar la etiqueta contenedora:
+
+```html
+<p class="author">Por: {{author ?? "Anónimo"}}</p>
+```
+
+---
+
+## 5. Inyección de Datos JSON
 
 Los archivos situados en la carpeta `data/` se cargan automáticamente:
 - `data/site.json` crea la variable global `{{site.*}}`.
@@ -109,7 +177,7 @@ En cualquier plantilla o componente puedes interpolar valores directamente:
 
 ---
 
-## 4. Reactividad con Web Components Nativos
+## 6. Reactividad con Web Components Nativos
 
 Para añadir interactividad compleja del lado del cliente, no necesitas React o Vue. Puedes usar Web Components nativos:
 

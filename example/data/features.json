@@ -1,0 +1,21 @@
+[
+  {
+    "title": "⚡ 100% Nativo de Bun",
+    "description": "Aprovecha Bun.build, Bun.serve y HTMLRewriter sin descargar librerías pesadas de terceros.",
+    "badge": "Rendimiento"
+  },
+  {
+    "title": "📦 Cero Dependencias",
+    "description": "Menos vulnerabilidades, instalación instantánea y cero bloatware en tus proyectos.",
+    "badge": "Arquitectura"
+  },
+  {
+    "title": "🧩 Web Components Nativos",
+    "description": "Reactividad del lado del cliente utilizando solo estándares web de los navegadores modernos."
+  },
+  {
+    "title": "🔁 Iteración y Condicionales",
+    "description": "Directiva <each> con auto-spread para componentes y soporte para condicionales if limpios.",
+    "badge": "Nuevo"
+  }
+]

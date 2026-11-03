@@ -142,4 +142,121 @@ describe("TemplateEngine", () => {
 
     rmSync(fixtureDir, { recursive: true, force: true });
   });
+
+  test("resolves <each src='...'> with auto-spread to <component>", async () => {
+    const fixtureDir = "/tmp/bustatic-test-each-spread";
+    const dataDir = join(fixtureDir, "data");
+    const componentsDir = join(fixtureDir, "components");
+    mkdirSync(dataDir, { recursive: true });
+    mkdirSync(componentsDir, { recursive: true });
+
+    await Bun.write(
+      join(dataDir, "cards.json"),
+      JSON.stringify([
+        { title: "Card 1", desc: "First", badge: "NEW" },
+        { title: "Card 2", desc: "Second" },
+      ])
+    );
+
+    await Bun.write(
+      join(componentsDir, "item.html"),
+      '<div class="item"><h4>{{title}}</h4><p>{{desc}}</p><span class="badge" if="badge">{{badge}}</span></div>'
+    );
+
+    const config = await resolveConfig(fixtureDir);
+    const engine = new TemplateEngine(config);
+
+    const page = '<each src="../data/cards.json"><component src="../components/item.html" /></each>';
+    const rendered = await engine.renderPage(page, join(fixtureDir, "pages/index.html"));
+
+    expect(rendered).toContain('<h4>Card 1</h4>');
+    expect(rendered).toContain('<p>First</p>');
+    expect(rendered).toContain('<span class="badge">NEW</span>');
+
+    expect(rendered).toContain('<h4>Card 2</h4>');
+    expect(rendered).toContain('<p>Second</p>');
+    // The second card has no badge, so <span class="badge"> must NOT exist for Card 2
+    const badgeMatches = rendered.match(/<span class="badge">/g);
+    expect(badgeMatches?.length).toBe(1);
+
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  test("resolves <each in='...'> with alias and primitive arrays", async () => {
+    const fixtureDir = "/tmp/bustatic-test-each-in";
+    const dataDir = join(fixtureDir, "data");
+    mkdirSync(dataDir, { recursive: true });
+
+    await Bun.write(
+      join(dataDir, "site.json"),
+      JSON.stringify({
+        tags: ["bun", "ssg", "fast"],
+      })
+    );
+
+    const config = await resolveConfig(fixtureDir);
+    const engine = new TemplateEngine(config);
+
+    const page = '<ul><each in="site.tags" as="tag"><li>{{tag}}</li></each></ul>';
+    const rendered = await engine.renderPage(page);
+
+    expect(rendered).toContain('<li>bun</li>');
+    expect(rendered).toContain('<li>ssg</li>');
+    expect(rendered).toContain('<li>fast</li>');
+
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  test("resolves <if is='...'> with <else>", async () => {
+    const fixtureDir = "/tmp/bustatic-test-if-else";
+    const dataDir = join(fixtureDir, "data");
+    mkdirSync(dataDir, { recursive: true });
+
+    await Bun.write(
+      join(dataDir, "site.json"),
+      JSON.stringify({ isOnline: true, isMaintenance: false })
+    );
+
+    const config = await resolveConfig(fixtureDir);
+    const engine = new TemplateEngine(config);
+
+    const page = `
+      <if is="site.isOnline">
+        <span>Site Online</span>
+        <else>
+          <span>Site Offline</span>
+        </else>
+      </if>
+      <if is="site.isMaintenance">
+        <span>Maintenance Mode</span>
+        <else>
+          <span>Normal Operation</span>
+        </else>
+      </if>
+    `;
+
+    const rendered = await engine.renderPage(page);
+    expect(rendered).toContain('<span>Site Online</span>');
+    expect(rendered).not.toContain('<span>Site Offline</span>');
+    expect(rendered).toContain('<span>Normal Operation</span>');
+    expect(rendered).not.toContain('<span>Maintenance Mode</span>');
+
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
+
+  test("resolves variable fallback with ??", async () => {
+    const fixtureDir = "/tmp/bustatic-test-fallback";
+    mkdirSync(fixtureDir, { recursive: true });
+
+    const config = await resolveConfig(fixtureDir);
+    const engine = new TemplateEngine(config);
+
+    const page = '<p>{{site.title ?? "Default Title"}}</p><p>{{missing ?? "No Value"}}</p>';
+    const rendered = await engine.renderPage(page);
+
+    expect(rendered).toContain('<p>Default Title</p>');
+    expect(rendered).toContain('<p>No Value</p>');
+
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
 });
