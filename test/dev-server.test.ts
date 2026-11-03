@@ -34,6 +34,15 @@ describe("DevServer", () => {
       expect(resRobots.status).toBe(200);
       const robotsText = await resRobots.text();
       expect(robotsText).toContain("User-agent: *");
+
+      // 5. TypeScript file transpilation on the fly
+      const resTs = await fetch(`http://localhost:${dev.port}/components/counter.ts`);
+      expect(resTs.status).toBe(200);
+      expect(resTs.headers.get("content-type")).toContain("application/javascript");
+      const tsCode = await resTs.text();
+      expect(tsCode).toContain("customElements.define");
+      expect(tsCode).not.toContain("private count: number");
+      expect(tsCode).toContain("count = 0");
     } finally {
       dev.stop();
     }

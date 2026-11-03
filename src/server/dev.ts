@@ -119,14 +119,14 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       if (existsSync(config.publicDir)) {
         const publicFilePath = join(config.publicDir, pathname);
         if (existsSync(publicFilePath) && !publicFilePath.endsWith("/")) {
-          return new Response(Bun.file(publicFilePath));
+          return serveFileWithTranspiler(publicFilePath);
         }
       }
 
       // 3. Try serving static asset directly from root (e.g. /styles/main.css, /components/counter.ts)
       const rootAssetPath = join(config.root, pathname);
       if (existsSync(rootAssetPath) && !rootAssetPath.endsWith("/")) {
-        return new Response(Bun.file(rootAssetPath));
+        return serveFileWithTranspiler(rootAssetPath);
       }
 
       // 4. Not found
@@ -145,4 +145,47 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       server.stop();
     },
   };
+}
+
+async function serveFileWithTranspiler(filePath: string): Promise<Response> {
+  if (filePath.endsWith(".ts") || filePath.endsWith(".tsx")) {
+    try {
+      const raw = await Bun.file(filePath).text();
+      const transpiler = new Bun.Transpiler({
+        loader: filePath.endsWith(".tsx") ? "tsx" : "ts",
+        target: "browser",
+      });
+      const js = await transpiler.transform(raw);
+      return new Response(js, {
+        headers: { "Content-Type": "application/javascript; charset=utf-8" },
+      });
+    } catch (err: any) {
+      console.error(`[Bustatic] TypeScript transpile error for ${filePath}:`, err?.message || err);
+      return new Response(`console.error("[Bustatic Transpile Error]: " + ${JSON.stringify(err?.message || String(err))});`, {
+        status: 500,
+        headers: { "Content-Type": "application/javascript; charset=utf-8" },
+      });
+    }
+  }
+
+  if (filePath.endsWith(".jsx")) {
+    try {
+      const raw = await Bun.file(filePath).text();
+      const transpiler = new Bun.Transpiler({
+        loader: "jsx",
+        target: "browser",
+      });
+      const js = await transpiler.transform(raw);
+      return new Response(js, {
+        headers: { "Content-Type": "application/javascript; charset=utf-8" },
+      });
+    } catch (err: any) {
+      return new Response(`console.error("[Bustatic Transpile Error]: " + ${JSON.stringify(err?.message || String(err))});`, {
+        status: 500,
+        headers: { "Content-Type": "application/javascript; charset=utf-8" },
+      });
+    }
+  }
+
+  return new Response(Bun.file(filePath));
 }
