@@ -93,4 +93,53 @@ describe("TemplateEngine", () => {
     expect(rendered).toContain('<p>Extra Details</p>');
     rmSync(fixtureDir, { recursive: true, force: true });
   });
+
+  test("resolves relative paths (../ and ./) with VS Code Ctrl+Click style", async () => {
+    const fixtureDir = "/tmp/bustatic-test-relative-paths";
+    const pagesDir = join(fixtureDir, "pages");
+    const layoutsDir = join(fixtureDir, "layouts");
+    const componentsDir = join(fixtureDir, "components");
+    mkdirSync(pagesDir, { recursive: true });
+    mkdirSync(layoutsDir, { recursive: true });
+    mkdirSync(componentsDir, { recursive: true });
+
+    // 1. Layout referencing header with relative path ../components/header.html
+    await Bun.write(
+      join(layoutsDir, "base.html"),
+      '<html><body><component src="../components/header.html" /><slot></slot></body></html>'
+    );
+
+    // 2. Component in componentsDir
+    await Bun.write(
+      join(componentsDir, "header.html"),
+      '<header><component src="./logo.html" /><h1>Site Title</h1></header>'
+    );
+
+    // 3. Sibling component in componentsDir
+    await Bun.write(
+      join(componentsDir, "logo.html"),
+      '<span class="logo">⚡ LOGO</span>'
+    );
+
+    // 4. Page in pages/blog/post.html referencing layout with ../../layouts/base.html
+    const blogDir = join(pagesDir, "blog");
+    mkdirSync(blogDir, { recursive: true });
+    const postFile = join(blogDir, "post.html");
+    await Bun.write(
+      postFile,
+      '<layout src="../../layouts/base.html"><p>Blog Content</p></layout>'
+    );
+
+    const config = await resolveConfig(fixtureDir);
+    const engine = new TemplateEngine(config);
+
+    const postContent = await Bun.file(postFile).text();
+    const rendered = await engine.renderPage(postContent, postFile);
+
+    expect(rendered).toContain('<span class="logo">⚡ LOGO</span>');
+    expect(rendered).toContain('<h1>Site Title</h1>');
+    expect(rendered).toContain('<p>Blog Content</p>');
+
+    rmSync(fixtureDir, { recursive: true, force: true });
+  });
 });

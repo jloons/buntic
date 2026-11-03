@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "test": "bun test",
-    "dev": "bun ./bin/bustatic.ts dev example",
+    "dev": "bun ./bin/bustatic.ts dev example --port 3333",
     "build": "bun ./bin/bustatic.ts build example"
   },
   "keywords": [

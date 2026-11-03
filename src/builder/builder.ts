@@ -51,7 +51,7 @@ export class Builder {
       // 1. Render all pages and write to stagingDir
       for (const page of pages) {
         const rawContent = await Bun.file(page.absoluteFilePath).text();
-        let rendered = await this.engine.renderPage(rawContent, page.relativeFilePath);
+        let rendered = await this.engine.renderPage(rawContent, page.absoluteFilePath);
 
         const stagedPath = join(stagingDir, page.relativeFilePath);
         mkdirSync(dirname(stagedPath), { recursive: true });

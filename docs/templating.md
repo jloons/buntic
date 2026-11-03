@@ -4,6 +4,16 @@ Bustatic utiliza HTML estándar complementado con etiquetas especiales de tiempo
 
 ---
 
+## ⚡ Superpoder de VS Code: Rutas Relativas y `Ctrl + Click`
+
+Uno de los mayores beneficios de usar el atributo nativo `src="..."` con rutas relativas (`./` o `../`) es la integración directa con editores modernos como **VS Code**:
+
+- **Navegación instantánea (Ctrl + Click / Cmd + Click):** Al colocar el cursor sobre `src="../components/card.html"` o `src="../layouts/main.html"`, el editor subraya la ruta como un hipervínculo y al hacer clic abre directamente el archivo correspondiente.
+- **Autocompletado de rutas:** Al escribir `src="./` o `src="../`, VS Code despliega una lista desplegable con todos los archivos disponibles en ese directorio.
+- **Sin plugins propietarios:** No necesitas instalar extensiones pesadas ni configurar herramientas de terceros. ¡Funciona de fábrica en cualquier editor HTML!
+
+---
+
 ## 1. Layouts (`<layout>` y `<slot>`)
 
 Un layout es una estructura base HTML (habitualmente en `layouts/`) que envuelve las páginas para compartir `head`, encabezados, navegación y pie de página.
@@ -14,26 +24,28 @@ Un layout es una estructura base HTML (habitualmente en `layouts/`) que envuelve
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title><slot name="title">Mi Sitio</slot></title>
+  <title><slot name="title">{{site.title}}</slot></title>
   <link rel="stylesheet" href="/styles/main.css">
   <slot name="head"></slot>
 </head>
 <body>
-  <component src="header.html" />
+  <!-- Referencia relativa: ¡Ctrl + Click en VS Code abre el archivo! -->
+  <component src="../components/header.html" />
 
   <!-- Punto de inserción del contenido principal -->
   <main>
     <slot></slot>
   </main>
 
-  <component src="footer.html" />
+  <component src="../components/footer.html" />
 </body>
 </html>
 ```
 
 ### Uso en una Página (`pages/index.html`):
 ```html
-<layout src="main.html">
+<!-- Referencia relativa: ¡Ctrl + Click en VS Code abre layouts/main.html! -->
+<layout src="../layouts/main.html">
   <!-- Inyección en el slot con nombre "title" -->
   <span slot="title">Inicio - Bienvenido</span>
 
@@ -46,7 +58,7 @@ Un layout es una estructura base HTML (habitualmente en `layouts/`) que envuelve
 
 ## 2. Componentes (`<component>`)
 
-Los componentes son fragmentos HTML reutilizables ubicados en `components/`.
+Los componentes son fragmentos HTML reutilizables. Puedes ubicarlos en `components/` o incluso colocarlos en la misma carpeta de una página.
 
 ### Definición del Componente (`components/card.html`):
 ```html
@@ -59,15 +71,18 @@ Los componentes son fragmentos HTML reutilizables ubicados en `components/`.
 </div>
 ```
 
-### Uso con Props y Contenido Hijo:
+### Uso con Rutas Relativas y Props:
 ```html
 <component 
-  src="card.html" 
+  src="../components/card.html" 
   title="Ultra Rápido" 
   description="Construido con Bun sin librerías externas">
   <a href="/docs">Leer más</a>
 </component>
 ```
+
+> [!TIP]
+> Bustatic soporta tanto rutas relativas explícitas (`../components/card.html`, `./boton.html`) como nombres convencionales (`card.html` o `card`), para que uses el estilo que más te guste.
 
 ---
 
