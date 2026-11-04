@@ -207,30 +207,58 @@ En cualquier plantilla o componente puedes interpolar valores directamente:
 
 ---
 
-## 6. Reactividad con Web Components Nativos
+## 6. Reactividad con Web Components Nativos y Auto-Importación
 
-Para añadir interactividad compleja del lado del cliente, no necesitas React o Vue. Puedes usar Web Components nativos:
+Para añadir interactividad del lado del cliente, Bustatic aprovecha la potencia de los **Web Components nativos** junto con el compilador integrado de Bun.
 
-### `components/counter.ts`:
-```ts
-class CounterButton extends HTMLElement {
-  count = 0;
-  connectedCallback() {
-    this.innerHTML = `<button>Clicks: ${this.count}</button>`;
-    this.querySelector("button")?.addEventListener("click", () => {
-      this.count++;
-      this.querySelector("button")!.textContent = `Clicks: ${this.count}`;
-    });
-  }
-}
-customElements.define("counter-button", CounterButton);
-```
+### Declaración en HTML (¡Sin etiquetas `<script>` manuales!)
 
-### En tu página HTML:
+Simplemente usa la etiqueta del componente en cualquier página o componente HTML:
+
 ```html
+<!-- Bustatic detecta automáticamente la etiqueta e inyecta el script en <head> -->
 <counter-button></counter-button>
-
-<script type="module" src="/components/counter.ts"></script>
 ```
 
-`Bun.build` empaqueta, compila TypeScript y minifica el componente automáticamente para producción.
+> [!NOTE]
+> Ya no necesitas escribir `<script type="module" src="/components/counter.ts"></script>`. Bustatic inspecciona el árbol del proyecto, asocia la etiqueta con su archivo `.ts` o `.js` e inyecta la referencia automáticamente. Si ya habías escrito la etiqueta `<script>` manualmente, Bustatic la respeta sin duplicarla.
+
+---
+
+### Cómo declara y detecta Bustatic tus Web Components
+
+Bustatic utiliza una doble estrategia de resolución indexada en su Virtual File System (VFS):
+
+1. **Definición Explícita en Código (`customElements.define` o decoradores):**
+   ```ts
+   // components/counter.ts
+   class CounterButton extends HTMLElement {
+     count = 0;
+     connectedCallback() {
+       this.innerHTML = `<button>Clicks: ${this.count}</button>`;
+       this.querySelector("button")?.addEventListener("click", () => {
+         this.count++;
+         this.querySelector("button")!.textContent = `Clicks: ${this.count}`;
+       });
+     }
+   }
+
+   customElements.define("counter-button", CounterButton);
+   ```
+
+2. **Convención por Nombre de Archivo:**
+   Si el archivo no define la etiqueta de forma estática inmediata, Bustatic asocia la etiqueta basándose en el nombre del archivo:
+   - `components/counter-button.ts` &rarr; `<counter-button>`
+   - `components/UserProfile.ts` (PascalCase) &rarr; `<user-profile>`
+
+---
+
+### Validación W3C y Prevención de Colisiones
+
+Para garantizar código robusto tanto en desarrollo como en producción:
+
+- **Especificación W3C:** Todas las etiquetas deben cumplir la especificación W3C (contener un guión `-`, iniciar con letra minúscula `[a-z]` y no coincidir con etiquetas reservadas del estándar como `font-face` o `annotation-xml`).
+- **Detección de Colisiones:** Si dos archivos intentan definir la misma etiqueta (por ejemplo, `components/card.ts` y `widgets/card.ts` ambos definiendo `<item-card>`):
+  - En **`bustatic dev`**: Emite una advertencia de colisión en consola y mantiene el registro sincronizado en caliente sin fugas de memoria si renombras o eliminas uno de los archivos.
+  - En **`bustatic build`**: Lanza una excepción fatal antes del empaquetado indicando con exactitud los archivos en conflicto para evitar comportamientos impredecibles en producción.
+- **Aviso de Componentes No Utilizados:** Durante `bustatic build`, si un Web Component está definido en el proyecto pero ninguna página HTML lo utiliza, Bustatic emite una advertencia en consola para ayudarte a mantener limpio tu código.

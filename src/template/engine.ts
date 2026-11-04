@@ -1,4 +1,4 @@
-import { join, resolve, dirname } from "node:path";
+import { join, resolve, dirname, relative } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
 import type { ResolvedConfig } from "../types.ts";
 import { VirtualFileSystem } from "./vfs.ts";
@@ -86,7 +86,63 @@ export class TemplateEngine {
     // 5. Interpolate data variables
     composed = this.interpolate(composed, context);
 
+    // 6. Auto-inject Web Component scripts
+    composed = this.injectWebComponents(composed);
+
     return composed;
+  }
+
+  /**
+   * Automatically scans HTML for declared Custom Element tags (e.g. <counter-button>)
+   * and injects the corresponding <script type="module" src="..."> into <head>.
+   */
+  public injectWebComponents(html: string): string {
+    const scriptsToInject: string[] = [];
+    const injectedPaths = new Set<string>();
+
+    const tagRegex = /<([a-z][a-z0-9]*-[a-z0-9-]*)/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = tagRegex.exec(html)) !== null) {
+      const tag = match[1].toLowerCase();
+      const scriptPath = this.vfs.registry.findScriptForTag(tag);
+      if (scriptPath) {
+        this.vfs.registry.markTagUsed(tag);
+        const rel = relative(this.config.root, scriptPath).replace(/\\/g, "/");
+        const publicSrc = rel.startsWith("/") ? rel : `/${rel}`;
+
+        // Don't inject if already injected or already referenced in the HTML document
+        if (!injectedPaths.has(publicSrc) && !html.includes(publicSrc)) {
+          injectedPaths.add(publicSrc);
+          scriptsToInject.push(`<script type="module" src="${publicSrc}"></script>`);
+        }
+      }
+    }
+
+    if (scriptsToInject.length === 0) {
+      return html;
+    }
+
+    const scriptTags = scriptsToInject.join("\n  ");
+    if (html.includes("</head>")) {
+      return html.replace("</head>", `  ${scriptTags}\n</head>`);
+    } else if (html.includes("</body>")) {
+      return html.replace("</body>", `  ${scriptTags}\n</body>`);
+    } else {
+      return `${html}\n${scriptTags}`;
+    }
+  }
+
+  public getUnusedWebComponents(): Array<{ tag: string; file: string }> {
+    return this.vfs.registry.getUnusedComponents();
+  }
+
+  public assertNoWebComponentConflicts(): void {
+    this.vfs.registry.assertNoConflicts();
+  }
+
+  public clearUsedWebComponents(): void {
+    this.vfs.registry.clearUsed();
   }
 
   /**

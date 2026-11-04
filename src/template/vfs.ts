@@ -1,8 +1,10 @@
 import { join, resolve, dirname } from "node:path";
-import { readdirSync, statSync, existsSync } from "node:fs";
+import { readdirSync, statSync, existsSync, readFileSync } from "node:fs";
+import { WebComponentRegistry } from "./web-components.ts";
 
 export class VirtualFileSystem {
   public root: string;
+  public registry: WebComponentRegistry = new WebComponentRegistry();
   private knownFiles: Set<string> = new Set();
   private knownDirs: Set<string> = new Set();
   private pathCache: Map<string, string> = new Map();
@@ -41,6 +43,14 @@ export class VirtualFileSystem {
             this.scan(fullPath);
           } else if (stat.isFile()) {
             this.knownFiles.add(fullPath);
+            if (/\.(ts|js|tsx|jsx)$/.test(fullPath)) {
+              try {
+                const content = readFileSync(fullPath, "utf-8");
+                this.registry.registerFile(fullPath, content);
+              } catch {
+                this.registry.registerFile(fullPath);
+              }
+            }
           }
         } catch {
           // Ignore unreadable files or broken symlinks
@@ -172,8 +182,21 @@ export class VirtualFileSystem {
     this.jsonCache.delete(absPath);
     this.pathCache.clear();
 
+    const isScript = /\.(ts|js|tsx|jsx)$/.test(absPath);
+    if (isScript) {
+      this.registry.unregisterFile(absPath);
+    }
+
     if (existsSync(absPath)) {
       this.knownFiles.add(absPath);
+      if (isScript) {
+        try {
+          const content = readFileSync(absPath, "utf-8");
+          this.registry.registerFile(absPath, content);
+        } catch {
+          this.registry.registerFile(absPath);
+        }
+      }
     } else {
       this.knownFiles.delete(absPath);
     }
@@ -188,6 +211,7 @@ export class VirtualFileSystem {
     this.pathCache.clear();
     this.contentCache.clear();
     this.jsonCache.clear();
+    this.registry = new WebComponentRegistry();
     this.scan(this.root);
   }
 }

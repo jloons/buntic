@@ -22,6 +22,10 @@ export class Builder {
   public async build(): Promise<BuildResult> {
     const startTime = performance.now();
 
+    // Verify no Web Component tag collisions exist before building
+    this.engine.assertNoWebComponentConflicts();
+    this.engine.clearUsedWebComponents();
+
     if (!existsSync(this.config.pagesDir)) {
       throw new Error(`[Bustatic] Pages directory not found at: ${this.config.pagesDir}`);
     }
@@ -81,6 +85,14 @@ export class Builder {
       // 3. Copy public/ assets if directory exists
       if (existsSync(this.config.publicDir)) {
         cpSync(this.config.publicDir, this.config.outDir, { recursive: true });
+      }
+
+      // 4. Warn about registered Web Components that are never used
+      const unused = this.engine.getUnusedWebComponents();
+      for (const item of unused) {
+        console.warn(
+          `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Web Component "<${item.tag}>" (${relative(this.config.root, item.file)}) is registered but not used in any page.`
+        );
       }
 
       const durationMs = Math.round(performance.now() - startTime);
