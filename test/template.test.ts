@@ -20,10 +20,10 @@ describe("TemplateEngine", () => {
     const config = await resolveConfig(fixtureDir);
     const engine = new TemplateEngine(config);
 
-    const html = "<h1>{{site.name}} - {{site.year}}</h1>";
+    const html = "<h1>{{site.name}} - {{site.year}}</h1><p>{{ site.name }}</p>";
     const rendered = await engine.renderPage(html);
 
-    expect(rendered).toBe("<h1>Bustatic Test - 2026</h1>");
+    expect(rendered).toBe("<h1>Bustatic Test - 2026</h1><p>Bustatic Test</p>");
     rmSync(fixtureDir, { recursive: true, force: true });
   });
 

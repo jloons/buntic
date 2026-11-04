@@ -1,5 +1,5 @@
 import { join, resolve, dirname } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import type { ResolvedConfig } from "../types.ts";
 import { VirtualFileSystem } from "./vfs.ts";
 
@@ -21,19 +21,26 @@ export class TemplateEngine {
     if (this.cachedData) return this.cachedData;
 
     const data: Record<string, any> = {};
-    const files = this.vfs.getFilesInDirectory(this.config.dataDir);
+    if (!existsSync(this.config.dataDir)) {
+      this.cachedData = data;
+      return data;
+    }
 
-    for (const fullPath of files) {
-      if (fullPath.endsWith(".json")) {
-        const lastSlash = fullPath.lastIndexOf("/");
-        const fileName = lastSlash !== -1 ? fullPath.slice(lastSlash + 1) : fullPath;
-        const key = fileName.replace(/\.json$/, "");
-        try {
-          data[key] = await this.vfs.readJson(fullPath);
-        } catch {
-          // Ignore unparseable JSON files
+    try {
+      const entries = readdirSync(this.config.dataDir);
+      for (const entry of entries) {
+        if (entry.endsWith(".json")) {
+          const key = entry.replace(/\.json$/, "");
+          const fullPath = join(this.config.dataDir, entry);
+          try {
+            data[key] = await this.vfs.readJson(fullPath);
+          } catch {
+            data[key] = await Bun.file(fullPath).json();
+          }
         }
       }
+    } catch {
+      // Ignored if data directory is empty or cannot be read
     }
 
     this.cachedData = data;
@@ -361,12 +368,12 @@ export class TemplateEngine {
   }
 
   public interpolate(html: string, context: Record<string, any>): string {
-    return html.replace(/\{\{([a-zA-Z0-9_.-]+)(?:\s*\?\?\s*["']([^"']*)["'])?\}\}/g, (match, key, fallback) => {
+    return html.replace(/\{\{\s*([a-zA-Z0-9_.-]+)(?:\s*\?\?\s*["']([^"']*)["'])?\s*\}\}/g, (match, key, fallback) => {
       const trimmed = key.trim();
       const val = this.getNestedValue(context, trimmed);
-      if (val !== undefined && val !== null && val !== "") return String(val);
+      if (val !== undefined && val !== null) return String(val);
       if (fallback !== undefined) return fallback;
-      return "";
+      return match;
     });
   }
 

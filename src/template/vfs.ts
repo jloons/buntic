@@ -151,7 +151,7 @@ export class VirtualFileSystem {
     const absSubDir = resolve(subDir);
     const results: string[] = [];
     for (const file of this.knownFiles) {
-      if (file.startsWith(absSubDir) && dirname(file) === absSubDir) {
+      if (dirname(resolve(file)) === absSubDir) {
         results.push(file);
       }
     }
