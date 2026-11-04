@@ -4,6 +4,15 @@ La interfaz de línea de comandos de Bustatic permite levantar servidores de des
 
 ---
 
+## Detección Automática de la Raíz del Proyecto
+
+Bustatic incluye un mecanismo inteligente de **búsqueda ascendente (*upward discovery*)**:
+- Si ejecutas `bustatic dev` o `bustatic build` dentro de cualquier subcarpeta de tu proyecto (por ejemplo en `pages/blog/` o `components/`), el CLI busca hacia arriba hasta encontrar la carpeta raíz que contiene `pages/` o un archivo de configuración (`bustatic.config.*`).
+- Si pasas un directorio explícito (ej. `bustatic dev ./mi-sitio`), Bustatic usará directamente ese directorio.
+- Si ejecutas el comando en un directorio que no pertenece a un proyecto Bustatic, recibirás un mensaje de error claro y accionable con los pasos para solucionarlo.
+
+---
+
 ## Sintaxis General
 
 ```bash

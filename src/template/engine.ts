@@ -1,13 +1,16 @@
 import { join, resolve, dirname } from "node:path";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import type { ResolvedConfig } from "../types.ts";
+import { VirtualFileSystem } from "./vfs.ts";
 
 export class TemplateEngine {
   private config: ResolvedConfig;
+  public vfs: VirtualFileSystem;
   private cachedData: Record<string, any> | null = null;
 
   constructor(config: ResolvedConfig) {
     this.config = config;
+    this.vfs = new VirtualFileSystem(this.config.root);
   }
 
   /**
@@ -18,23 +21,19 @@ export class TemplateEngine {
     if (this.cachedData) return this.cachedData;
 
     const data: Record<string, any> = {};
-    if (!existsSync(this.config.dataDir)) {
-      this.cachedData = data;
-      return data;
-    }
+    const files = this.vfs.getFilesInDirectory(this.config.dataDir);
 
-    try {
-      const files = readdirSync(this.config.dataDir);
-      for (const file of files) {
-        if (file.endsWith(".json")) {
-          const key = file.replace(/\.json$/, "");
-          const fullPath = join(this.config.dataDir, file);
-          const fileRef = Bun.file(fullPath);
-          data[key] = await fileRef.json();
+    for (const fullPath of files) {
+      if (fullPath.endsWith(".json")) {
+        const lastSlash = fullPath.lastIndexOf("/");
+        const fileName = lastSlash !== -1 ? fullPath.slice(lastSlash + 1) : fullPath;
+        const key = fileName.replace(/\.json$/, "");
+        try {
+          data[key] = await this.vfs.readJson(fullPath);
+        } catch {
+          // Ignore unparseable JSON files
         }
       }
-    } catch {
-      // Ignored if data directory is empty or cannot be read
     }
 
     this.cachedData = data;
@@ -43,6 +42,14 @@ export class TemplateEngine {
 
   public invalidateDataCache(): void {
     this.cachedData = null;
+  }
+
+  /**
+   * Invalidate VFS cache and data cache.
+   */
+  public invalidateCache(filePath?: string): void {
+    this.cachedData = null;
+    this.vfs.invalidateFile(filePath);
   }
 
   /**
@@ -76,55 +83,10 @@ export class TemplateEngine {
   }
 
   /**
-   * Resolves a file path referenced in a template.
-   * Priority:
-   * 1. Explicit relative path (./ or ../) relative to currentFile
-   * 2. Root-relative path (/layouts/main.html) relative to config.root
-   * 3. Implicit relative to currentFile directory
-   * 4. Convention directory (e.g. layoutsDir or componentsDir)
-   * 5. Project root directly
+   * Resolves a file path referenced in a template using the Virtual File System.
    */
   public resolveFilePath(rawSrc: string, currentFile: string, defaultDir: string): string {
-    const src = rawSrc;
-    const srcWithHtml = src.endsWith(".html") ? src : `${src}.html`;
-    const candidates: string[] = [];
-
-    // 1. Explicit relative path (./ or ../)
-    if (src.startsWith("./") || src.startsWith("../")) {
-      const fromDir = currentFile ? dirname(currentFile) : this.config.root;
-      candidates.push(resolve(fromDir, src));
-      candidates.push(resolve(fromDir, srcWithHtml));
-    }
-
-    // 2. Root-relative (/layouts/main.html or /components/card.html)
-    if (src.startsWith("/")) {
-      const clean = src.slice(1);
-      candidates.push(resolve(this.config.root, clean));
-      candidates.push(resolve(this.config.root, srcWithHtml.slice(1)));
-    }
-
-    // 3. Current file directory implicit relative
-    if (currentFile && !src.startsWith("/")) {
-      const fromDir = dirname(currentFile);
-      candidates.push(resolve(fromDir, src));
-      candidates.push(resolve(fromDir, srcWithHtml));
-    }
-
-    // 4. Default convention directory (e.g. layouts/ or components/)
-    candidates.push(resolve(defaultDir, src));
-    candidates.push(resolve(defaultDir, srcWithHtml));
-
-    // 5. Project root
-    candidates.push(resolve(this.config.root, src));
-    candidates.push(resolve(this.config.root, srcWithHtml));
-
-    for (const cand of candidates) {
-      if (existsSync(cand) && !statSync(cand).isDirectory()) {
-        return cand;
-      }
-    }
-
-    return candidates[0] || resolve(defaultDir, srcWithHtml);
+    return this.vfs.resolvePath(rawSrc, currentFile, defaultDir);
   }
 
   /**
@@ -142,11 +104,11 @@ export class TemplateEngine {
     const innerContent = layoutMatch[2];
 
     const layoutFilePath = this.resolveFilePath(layoutRawSrc, currentFile, this.config.layoutsDir);
-    if (!existsSync(layoutFilePath)) {
+    if (!this.vfs.hasFile(layoutFilePath) && !existsSync(layoutFilePath)) {
       throw new Error(`[Bustatic] Layout not found: "${layoutRawSrc}" at ${layoutFilePath}`);
     }
 
-    let layoutTemplate = await Bun.file(layoutFilePath).text();
+    let layoutTemplate = await this.vfs.readText(layoutFilePath);
 
     // Process <each> inside page inner content using the page's currentFile path
     let resolvedInner = await this.resolveEach(innerContent, context, currentFile);
@@ -217,10 +179,10 @@ export class TemplateEngine {
 
       if (attrs.src) {
         const filePath = this.resolveFilePath(attrs.src, currentFile, this.config.dataDir);
-        if (!existsSync(filePath)) {
+        if (!this.vfs.hasFile(filePath) && !existsSync(filePath)) {
           throw new Error(`[Bustatic] <each> data file not found: "${attrs.src}" at ${filePath}`);
         }
-        const fileContent = await Bun.file(filePath).json();
+        const fileContent = await this.vfs.readJson(filePath);
         items = fileContent;
       } else if (attrs.in) {
         items = this.getNestedValue(context, attrs.in);
@@ -310,11 +272,11 @@ export class TemplateEngine {
     for (const item of matches) {
       const compPath = this.resolveFilePath(item.src, currentFile, this.config.componentsDir);
 
-      if (!existsSync(compPath)) {
+      if (!this.vfs.hasFile(compPath) && !existsSync(compPath)) {
         throw new Error(`[Bustatic] Component not found: "${item.src}" at ${compPath}`);
       }
 
-      let compTemplate = await Bun.file(compPath).text();
+      let compTemplate = await this.vfs.readText(compPath);
 
       // Combined props with global / spread data
       const compContext = { ...context, ...item.props };

@@ -32,35 +32,35 @@ export async function runCLI(args: string[]): Promise<void> {
     }
   }
 
-  if (command === "dev") {
-    const config = await resolveConfig(targetDir, { port });
-    console.log(`\n🚀 \x1b[36m[Bustatic]\x1b[0m Starting dev server for: \x1b[33m${config.root}\x1b[0m`);
-    const devInstance = startDevServer(config);
-    console.log(`   ➜ Local:   \x1b[32mhttp://localhost:${devInstance.port}/\x1b[0m`);
-    console.log(`   ➜ Live reload enabled via WebSockets.\n`);
+  try {
+    if (command === "dev") {
+      const config = await resolveConfig(targetDir, { port });
+      console.log(`\n🚀 \x1b[36m[Bustatic]\x1b[0m Starting dev server for: \x1b[33m${config.root}\x1b[0m`);
+      const devInstance = startDevServer(config);
+      console.log(`   ➜ Local:   \x1b[32mhttp://localhost:${devInstance.port}/\x1b[0m`);
+      console.log(`   ➜ Live reload enabled via WebSockets.\n`);
 
-    // Handle graceful shutdown
-    process.on("SIGINT", () => {
-      console.log("\n\x1b[33m[Bustatic]\x1b[0m Shutting down server...");
-      devInstance.stop();
-      process.exit(0);
-    });
-  } else if (command === "build") {
-    const config = await resolveConfig(targetDir, { outDir });
-    console.log(`\n📦 \x1b[36m[Bustatic]\x1b[0m Building static site for: \x1b[33m${config.root}\x1b[0m`);
+      // Handle graceful shutdown
+      process.on("SIGINT", () => {
+        console.log("\n\x1b[33m[Bustatic]\x1b[0m Shutting down server...");
+        devInstance.stop();
+        process.exit(0);
+      });
+    } else if (command === "build") {
+      const config = await resolveConfig(targetDir, { outDir });
+      console.log(`\n📦 \x1b[36m[Bustatic]\x1b[0m Building static site for: \x1b[33m${config.root}\x1b[0m`);
 
-    const builder = new Builder(config);
-    try {
+      const builder = new Builder(config);
       const result = await builder.build();
       console.log(`\x1b[32m✔\x1b[0m Successfully built ${result.pagesCount} page(s) in ${result.durationMs}ms`);
       console.log(`\x1b[32m✔\x1b[0m Output directory: \x1b[33m${config.outDir}\x1b[0m\n`);
-    } catch (err: any) {
-      console.error(`\x1b[31m✖ [Bustatic Build Error]:\x1b[0m`, err?.message || err);
+    } else {
+      console.error(`\x1b[31mUnknown command:\x1b[0m "${command}"`);
+      printHelp();
       process.exit(1);
     }
-  } else {
-    console.error(`\x1b[31mUnknown command:\x1b[0m "${command}"`);
-    printHelp();
+  } catch (err: any) {
+    console.error(`\n\x1b[31m${err?.message || err}\x1b[0m\n`);
     process.exit(1);
   }
 }

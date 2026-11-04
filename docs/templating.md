@@ -4,13 +4,43 @@ Bustatic utiliza HTML estándar complementado con etiquetas especiales de tiempo
 
 ---
 
-## ⚡ Superpoder de VS Code: Rutas Relativas y `Ctrl + Click`
+## ⚡ Formas de Referenciar Rutas y Soporte en VS Code
 
-Uno de los mayores beneficios de usar el atributo nativo `src="..."` con rutas relativas (`./` o `../`) es la integración directa con editores modernos como **VS Code**:
+Bustatic soporta tres formas flexibles de referenciar cualquier `<layout>`, `<component>` o `<each>`:
 
-- **Navegación instantánea (Ctrl + Click / Cmd + Click):** Al colocar el cursor sobre `src="../components/card.html"` o `src="../layouts/main.html"`, el editor subraya la ruta como un hipervínculo y al hacer clic abre directamente el archivo correspondiente.
-- **Autocompletado de rutas:** Al escribir `src="./` o `src="../`, VS Code despliega una lista desplegable con todos los archivos disponibles en ese directorio.
-- **Sin plugins propietarios:** No necesitas instalar extensiones pesadas ni configurar herramientas de terceros. ¡Funciona de fábrica en cualquier editor HTML!
+1. **Relativa a la Raíz del Proyecto (`/`):**
+   ```html
+   <layout src="/layouts/main.html">
+     <component src="/components/card.html" />
+     <each src="/data/features.json"> ... </each>
+   </layout>
+   ```
+   *Ideal para rutas predecibles sin tener que contar cuántos `../` subir en páginas profundamente anidadas.*
+
+2. **Relativa al Archivo Actual (`./` o `../`):**
+   ```html
+   <layout src="../layouts/main.html">
+     <component src="../components/card.html" />
+   </layout>
+   ```
+   *Ideal para componentes colocados junto a las páginas (`./autor.html`) y para habilitar la navegación instantánea `Ctrl + Click` y el autocompletado nativo en VS Code.*
+
+3. **Por Convención de Nombre:**
+   ```html
+   <layout src="main.html">
+     <component src="card.html" />
+   </layout>
+   ```
+   *La opción más corta: Bustatic busca automáticamente en las carpetas `layouts/` y `components/`.*
+
+---
+
+## 🚀 Virtual File System (VFS) y Caché en Memoria
+
+Bustatic incorpora un **Virtual File System (VFS)** en memoria:
+- **Indexación instantánea:** Al iniciar, indexa la estructura del proyecto en RAM, evitando miles de llamadas repetitivas `statSync` o `existsSync` a disco.
+- **Caché de contenido:** Las plantillas HTML y archivos JSON se leen del disco una sola vez y se reutilizan en memoria a través de todas las páginas y bucles `<each>`.
+- **Invalidación reactiva:** Durante `bustatic dev`, el observador de archivos refresca en el VFS únicamente los archivos modificados en tiempo real.
 
 ---
 

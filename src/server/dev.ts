@@ -47,9 +47,10 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       return;
     }
 
+    const changedPath = resolve(config.root, filename);
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      engine.invalidateDataCache();
+      engine.invalidateCache(changedPath);
       for (const socket of activeSockets) {
         socket.send("reload");
       }
