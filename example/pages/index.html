@@ -13,10 +13,33 @@
   </section>
 
   <section class="interactive-box">
-    <h2>Demostración de Web Component Reactivo</h2>
-    <p style="margin-bottom: 1rem; color: var(--text-muted);">
-      Este botón interactivo está construido con un Web Component nativo empaquetado por Bun:
+    <h2>Demostración de Web Components Anidados</h2>
+    <p>
+      El componente <code>&lt;interactive-card&gt;</code> anida dentro de su plantilla HTML hermana a <code>&lt;counter-button&gt;</code>, ambos compilados y con Declarative Shadow DOM nativo:
     </p>
-    <counter-button></counter-button>
+
+    <interactive-card>
+      <span slot="title">⚡ Tarjeta Reactiva con Web Components Anidados</span>
+      <p>
+        Este texto y título se proyectan mediante <code>&lt;slot&gt;</code> desde la página principal,
+        mientras que el botón interactivo de abajo proviene de la plantilla HTML hermana (triada DSD) del componente contenedor.
+      </p>
+    </interactive-card>
+
+    <style scoped>
+      & {
+        background-color: var(--card-bg);
+        border: 1px dashed var(--accent);
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        margin: 2.5rem 0;
+      }
+
+      & > p {
+        margin-bottom: 1rem;
+        color: var(--text-muted);
+      }
+    </style>
   </section>
 </layout>

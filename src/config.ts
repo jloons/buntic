@@ -91,5 +91,6 @@ export async function resolveConfig(
     outDir: resolve(root, merged.outDir ?? "dist"),
     port: merged.port ?? 3000,
     minify: merged.minify ?? true,
+    cssStrategy: merged.cssStrategy ?? "inline",
   };
 }

@@ -1,6 +1,6 @@
-import { basename, extname } from "node:path";
+import { basename, extname, dirname, join } from "node:path";
 
-const RESERVED_W3C_TAGS = new Set([
+export const RESERVED_W3C_TAGS = new Set([
   "annotation-xml",
   "color-profile",
   "font-face",
@@ -16,10 +16,53 @@ export interface ComponentConflict {
   files: string[];
 }
 
+/**
+ * Converts a PascalCase string to kebab-case.
+ * e.g. "CounterButton" -> "counter-button"
+ */
+export function pascalToKebab(pascal: string): string {
+  return pascal.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+/**
+ * Converts a kebab-case string to PascalCase.
+ * e.g. "counter-button" -> "CounterButton"
+ */
+export function kebabToPascal(kebab: string): string {
+  return kebab
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("");
+}
+
+/**
+ * Derives the expected custom element tag name from a file path.
+ * The filename must be in hyphenated kebab-case (e.g. "counter-button.ts")
+ * or PascalCase with at least two words (e.g. "CounterButton.ts").
+ * Returns null if the filename does not adhere to Custom Element naming.
+ */
+export function filenameToTagName(filePath: string): string | null {
+  const ext = extname(filePath);
+  const rawName = basename(filePath, ext);
+
+  if (rawName.includes("-")) {
+    return rawName.toLowerCase();
+  }
+
+  if (/^[A-Z][a-zA-Z0-9]+$/.test(rawName)) {
+    const kebab = pascalToKebab(rawName);
+    if (kebab.includes("-")) {
+      return kebab;
+    }
+  }
+
+  return null;
+}
+
 export class WebComponentRegistry {
   // Map tag to canonical defining file path
   private tagToFile: Map<string, string> = new Map();
-  // Map file path to all tags it registered
+  // Map file path to the single tag it registered
   private fileToTags: Map<string, Set<string>> = new Map();
   // Track conflicts: tag -> array of file paths that tried to register it
   private conflicts: Map<string, string[]> = new Map();
@@ -43,75 +86,78 @@ export class WebComponentRegistry {
   }
 
   /**
-   * Registers a JavaScript/TypeScript file and extracts any declared custom element tags.
+   * Registers a JavaScript/TypeScript file for a Web Component under strict 1:1 convention:
+   * 1. The filename must match the custom element tag name (kebab-case or PascalCase).
+   * 2. Only 1 custom element may be defined per file.
    */
   public registerFile(filePath: string, content?: string): string[] {
     // Clean up previous registrations for this file first
     this.unregisterFile(filePath);
 
-    const discoveredTags = new Set<string>();
+    const expectedTag = filenameToTagName(filePath);
+    if (!expectedTag) {
+      if (content && /(?:customElements\.define|@customElement)\s*\(\s*["']([a-z0-9-]+)["']/i.test(content)) {
+        console.warn(
+          `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Web Component file "${filePath}" does not match naming convention (must be hyphenated kebab-case like "my-button.ts" or PascalCase like "MyButton.ts"). Registration skipped.`
+        );
+      }
+      return [];
+    }
+
+    const validation = this.validateTagName(expectedTag);
+    if (!validation.valid) {
+      console.warn(
+        `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Skipping invalid Custom Element tag "${expectedTag}" in ${filePath}: ${validation.reason}`
+      );
+      return [];
+    }
 
     if (content) {
-      // 1. Detect customElements.define("tag-name", ...) or @customElement("tag-name")
+      // 1. Detect any customElements.define("tag-name", ...) or @customElement("tag-name")
       const defineRegex = /(?:customElements\.define|@customElement)\s*\(\s*["']([a-z0-9-]+)["']/gi;
+      const declaredTags = new Set<string>();
       let match: RegExpExecArray | null;
       while ((match = defineRegex.exec(content)) !== null) {
-        discoveredTags.add(match[1].toLowerCase());
-      }
-    }
-
-    // 2. Fallback: check filename convention if no explicit define found
-    if (discoveredTags.size === 0) {
-      const ext = extname(filePath);
-      if (ext === ".ts" || ext === ".js" || ext === ".tsx" || ext === ".jsx") {
-        const rawName = basename(filePath, ext);
-        // If filename already contains a hyphen (e.g. counter-button.ts)
-        if (rawName.includes("-")) {
-          discoveredTags.add(rawName.toLowerCase());
-        } else if (/^[A-Z][a-zA-Z0-9]+$/.test(rawName)) {
-          // If PascalCase (e.g. CounterButton.ts -> counter-button)
-          const kebab = rawName.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
-          if (kebab.includes("-")) {
-            discoveredTags.add(kebab);
-          }
-        }
-      }
-    }
-
-    const attemptedTags: string[] = [];
-    const registered: string[] = [];
-
-    for (const tag of discoveredTags) {
-      const validation = this.validateTagName(tag);
-      if (!validation.valid) {
-        console.warn(`\x1b[33m⚠ [Bustatic Warning]\x1b[0m Skipping invalid Custom Element tag "${tag}" in ${filePath}: ${validation.reason}`);
-        continue;
+        declaredTags.add(match[1].toLowerCase());
       }
 
-      attemptedTags.push(tag);
-
-      // Check for collision with another file
-      const existingFile = this.tagToFile.get(tag);
-      if (existingFile && existingFile !== filePath) {
-        const conflictFiles = this.conflicts.get(tag) || [existingFile];
-        if (!conflictFiles.includes(filePath)) {
-          conflictFiles.push(filePath);
-        }
-        this.conflicts.set(tag, conflictFiles);
+      // Enforce: only 1 custom element per file
+      if (declaredTags.size > 1) {
         console.warn(
-          `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Tag "<${tag}>" in ${filePath} conflicts with definition in ${existingFile}.`
+          `\x1b[33m⚠ [Bustatic Warning]\x1b[0m File "${filePath}" declares multiple Custom Elements (${Array.from(declaredTags).map((t) => `<${t}>`).join(", ")}). Bustatic strictly enforces 1 Web Component per file. File skipped.`
         );
-      } else {
-        this.tagToFile.set(tag, filePath);
-        registered.push(tag);
+        return [];
+      }
+
+      // Enforce: declared tag must match filename
+      if (declaredTags.size === 1) {
+        const declaredTag = Array.from(declaredTags)[0];
+        if (declaredTag !== expectedTag) {
+          console.warn(
+            `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Tag "<${declaredTag}>" in "${filePath}" does not match filename. Expected tag "<${expectedTag}>" for file "${basename(filePath)}". Registration skipped.`
+          );
+          return [];
+        }
       }
     }
 
-    if (attemptedTags.length > 0) {
-      this.fileToTags.set(filePath, new Set(attemptedTags));
+    // Check for collision with another file
+    const existingFile = this.tagToFile.get(expectedTag);
+    if (existingFile && existingFile !== filePath) {
+      const conflictFiles = this.conflicts.get(expectedTag) || [existingFile];
+      if (!conflictFiles.includes(filePath)) {
+        conflictFiles.push(filePath);
+      }
+      this.conflicts.set(expectedTag, conflictFiles);
+      console.warn(
+        `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Tag "<${expectedTag}>" in ${filePath} conflicts with definition in ${existingFile}.`
+      );
+      return [];
     }
 
-    return registered;
+    this.tagToFile.set(expectedTag, filePath);
+    this.fileToTags.set(filePath, new Set([expectedTag]));
+    return [expectedTag];
   }
 
   /**
@@ -211,9 +257,81 @@ export class WebComponentRegistry {
   }
 
   /**
+   * Returns all tags registered by a specific file.
+   */
+  public getTagsForFile(filePath: string): string[] {
+    const set = this.fileToTags.get(filePath);
+    return set ? Array.from(set) : [];
+  }
+
+  /**
    * Returns all registered tags.
    */
   public getAllRegisteredTags(): string[] {
     return Array.from(this.tagToFile.keys());
   }
+}
+
+/**
+ * Detects whether a script imports a specific CSS file (e.g. for Shadow DOM use).
+ */
+export function scriptImportsCssFile(scriptContent: string, cssFileName: string): boolean {
+  const baseName = cssFileName.replace(/\.css$/, "");
+  const importRegex = new RegExp(
+    `(?:import|require)\\s*(?:[\\s\\S]*?from\\s*)?\\(?\\s*["'][^"']*?\\b${baseName}(?:\\.css)?["']`,
+    "i"
+  );
+  return importRegex.test(scriptContent);
+}
+
+export interface ComponentTriad {
+  tag: string;
+  scriptPath?: string;
+  htmlPath?: string;
+  cssPath?: string;
+}
+
+/**
+ * Given a Web Component script path (e.g. components/counter-button.ts or components/CounterButton.ts),
+ * locates any co-located sibling HTML template and CSS stylesheet.
+ */
+export function findTriadForScript(
+  scriptPath: string,
+  existsFn: (p: string) => boolean
+): ComponentTriad | null {
+  const tag = filenameToTagName(scriptPath);
+  if (!tag) return null;
+
+  const dir = dirname(scriptPath);
+  const ext = extname(scriptPath);
+  const rawBase = basename(scriptPath, ext);
+
+  const kebabBase = tag;
+  const pascalBase = kebabToPascal(tag);
+  const candidateNames = Array.from(new Set([rawBase, kebabBase, pascalBase]));
+
+  let htmlPath: string | undefined;
+  for (const name of candidateNames) {
+    const candidate = join(dir, `${name}.html`);
+    if (existsFn(candidate)) {
+      htmlPath = candidate;
+      break;
+    }
+  }
+
+  let cssPath: string | undefined;
+  for (const name of candidateNames) {
+    const candidate = join(dir, `${name}.css`);
+    if (existsFn(candidate)) {
+      cssPath = candidate;
+      break;
+    }
+  }
+
+  return {
+    tag,
+    scriptPath,
+    htmlPath,
+    cssPath,
+  };
 }

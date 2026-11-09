@@ -155,6 +155,13 @@ export class VirtualFileSystem {
   }
 
   /**
+   * Returns all known indexed file paths in the workspace.
+   */
+  public getAllFiles(): string[] {
+    return Array.from(this.knownFiles);
+  }
+
+  /**
    * Returns all known files located inside a given subfolder (e.g. data/)
    */
   public getFilesInDirectory(subDir: string): string[] {

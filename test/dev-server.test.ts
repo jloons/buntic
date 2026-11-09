@@ -36,7 +36,7 @@ describe("DevServer", () => {
       expect(robotsText).toContain("User-agent: *");
 
       // 5. TypeScript file transpilation on the fly
-      const resTs = await fetch(`http://localhost:${dev.port}/components/counter.ts`);
+      const resTs = await fetch(`http://localhost:${dev.port}/components/counter-button.ts`);
       expect(resTs.status).toBe(200);
       expect(resTs.headers.get("content-type")).toContain("application/javascript");
       const tsCode = await resTs.text();

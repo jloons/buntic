@@ -29,7 +29,11 @@ describe("Builder", () => {
 
     const indexHtml = await Bun.file(indexHtmlPath).text();
     expect(indexHtml).toContain("Bienvenido a Bustatic");
-    expect(indexHtml).toContain("<counter-button></counter-button>");
+    expect(indexHtml).toContain("<interactive-card>");
+    expect(indexHtml).toContain("<counter-button>");
+    expect(indexHtml).toContain('<template shadowrootmode="open">');
+    expect(indexHtml).toContain("</counter-button>");
+    expect(indexHtml).toContain("</interactive-card>");
     expect(indexHtml).toContain("Inicio - Bustatic");
 
     const aboutHtml = await Bun.file(aboutHtmlPath).text();
@@ -39,10 +43,17 @@ describe("Builder", () => {
     const robotsPath = join(outDir, "robots.txt");
     expect(existsSync(robotsPath)).toBe(true);
 
-    // Verify bundled CSS / JS assets exist in dist/
-    const hasCssChunk = result.outputFiles.some((f) => f.endsWith(".css"));
+    // In default inline mode, CSS is inlined directly into HTML
+    expect(indexHtml).toContain("<style");
     const hasJsChunk = result.outputFiles.some((f) => f.endsWith(".js"));
-    expect(hasCssChunk).toBe(true);
     expect(hasJsChunk).toBe(true);
+
+    // Verify external CSS mode emits separate .css chunk
+    const externalConfig = await resolveConfig(exampleDir, { cssStrategy: "external" });
+    const externalBuilder = new Builder(externalConfig);
+    const externalResult = await externalBuilder.build();
+    expect(externalResult.success).toBe(true);
+    const hasExternalCssChunk = externalResult.outputFiles.some((f) => f.endsWith(".css"));
+    expect(hasExternalCssChunk).toBe(true);
   });
 });

@@ -57,11 +57,22 @@ export class Builder {
         const rawContent = await Bun.file(page.absoluteFilePath).text();
         let rendered = await this.engine.renderPage(rawContent, page.absoluteFilePath);
 
+        // Write any generated scoped CSS files if in external mode before normalizing
+        if (this.config.cssStrategy === "external") {
+          for (const [relPath, cssContent] of this.engine.generatedPageStyles.entries()) {
+            if (!relPath.startsWith("/")) {
+              const stagedCssPath = join(stagingDir, relPath);
+              mkdirSync(dirname(stagedCssPath), { recursive: true });
+              await Bun.write(stagedCssPath, cssContent);
+            }
+          }
+        }
+
         const stagedPath = join(stagingDir, page.relativeFilePath);
         mkdirSync(dirname(stagedPath), { recursive: true });
 
         // Normalize root-relative paths (/styles/..., /components/...) to relative paths so Bun.build can resolve them
-        rendered = this.normalizeRootPaths(rendered, stagedPath);
+        rendered = this.normalizeRootPaths(rendered, stagedPath, stagingDir);
 
         await Bun.write(stagedPath, rendered);
         stagedEntrypoints.push(stagedPath);
@@ -141,19 +152,26 @@ export class Builder {
     return results;
   }
 
-  private normalizeRootPaths(html: string, stagedFilePath: string): string {
+  private normalizeRootPaths(html: string, stagedFilePath: string, stagingDir?: string): string {
     const fromDir = dirname(stagedFilePath);
     return html.replace(/(href|src)=["']\/([^"']+)["']/gi, (match, attr, path) => {
       // Don't modify protocol-relative, http, ws or external links
       if (path.startsWith("/") || path.startsWith("http:") || path.startsWith("https:") || path.startsWith("_bustatic")) {
         return match;
       }
-      const target = join(this.config.root, path);
-      // Only rewrite if target file exists in the project root
-      if (existsSync(target)) {
-        let rel = relative(fromDir, target);
+      const targetInRoot = join(this.config.root, path);
+      if (existsSync(targetInRoot)) {
+        let rel = relative(fromDir, targetInRoot);
         if (!rel.startsWith(".")) rel = "./" + rel;
         return `${attr}="${rel}"`;
+      }
+      if (stagingDir) {
+        const targetInStaging = join(stagingDir, path);
+        if (existsSync(targetInStaging)) {
+          let rel = relative(fromDir, targetInStaging);
+          if (!rel.startsWith(".")) rel = "./" + rel;
+          return `${attr}="${rel}"`;
+        }
       }
       return match;
     });

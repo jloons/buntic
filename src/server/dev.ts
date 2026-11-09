@@ -116,7 +116,15 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
         }
       }
 
-      // 2. Try serving static file from publicDir
+      // 2. Try serving generated page-specific scoped CSS (in external mode)
+      if (engine.generatedPageStyles.has(pathname)) {
+        const css = engine.generatedPageStyles.get(pathname)!;
+        return new Response(css, {
+          headers: { "Content-Type": "text/css; charset=utf-8" },
+        });
+      }
+
+      // 3. Try serving static file from publicDir
       if (existsSync(config.publicDir)) {
         const publicFilePath = join(config.publicDir, pathname);
         if (existsSync(publicFilePath) && !publicFilePath.endsWith("/")) {
@@ -150,6 +158,22 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
 
 async function serveFileWithTranspiler(filePath: string): Promise<Response> {
   if (filePath.endsWith(".ts") || filePath.endsWith(".tsx")) {
+    try {
+      const build = await Bun.build({
+        entrypoints: [filePath],
+        target: "browser",
+        format: "esm",
+      });
+      if (build.success && build.outputs.length > 0) {
+        const js = await build.outputs[0].text();
+        return new Response(js, {
+          headers: { "Content-Type": "application/javascript; charset=utf-8" },
+        });
+      }
+    } catch {
+      // Fallback to transpiler below
+    }
+
     try {
       const raw = await Bun.file(filePath).text();
       const transpiler = new Bun.Transpiler({

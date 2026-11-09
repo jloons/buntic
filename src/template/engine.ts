@@ -1,16 +1,46 @@
-import { join, resolve, dirname, relative } from "node:path";
+import { join, resolve, dirname, relative, basename, extname } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
 import type { ResolvedConfig } from "../types.ts";
 import { VirtualFileSystem } from "./vfs.ts";
+import {
+  ScopeRegistry,
+  extractScopedStyles,
+  attachSiblingScopedCss,
+  transformScopedCss,
+} from "./scoped-css.ts";
+import { scriptImportsCssFile, findTriadForScript, filenameToTagName, RESERVED_W3C_TAGS } from "./web-components.ts";
+import { CssDependencyGraph } from "./css-graph.ts";
+
+/**
+ * Checks whether an HTML string already contains a <script> tag pointing to srcPath.
+ */
+export function hasScriptWithSrc(html: string, srcPath: string): boolean {
+  const cleanSrc = srcPath.replace(/^\/+/, "");
+  const scriptRegex = /<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = scriptRegex.exec(html)) !== null) {
+    const existingSrc = m[1].replace(/^\/+/, "");
+    if (existingSrc === cleanSrc || existingSrc.endsWith("/" + cleanSrc)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 export class TemplateEngine {
   private config: ResolvedConfig;
   public vfs: VirtualFileSystem;
+  public scopeRegistry: ScopeRegistry;
+  public cssGraph: CssDependencyGraph;
+  public generatedPageStyles: Map<string, string> = new Map();
   private cachedData: Record<string, any> | null = null;
+  private warnedUnknownTags: Set<string> = new Set();
 
   constructor(config: ResolvedConfig) {
     this.config = config;
     this.vfs = new VirtualFileSystem(this.config.root);
+    this.scopeRegistry = new ScopeRegistry();
+    this.cssGraph = new CssDependencyGraph(this.config.root);
   }
 
   /**
@@ -52,11 +82,15 @@ export class TemplateEngine {
   }
 
   /**
-   * Invalidate VFS cache and data cache.
+   * Invalidate VFS cache, data cache, scope registry and page styles.
    */
   public invalidateCache(filePath?: string): void {
     this.cachedData = null;
     this.vfs.invalidateFile(filePath);
+    this.scopeRegistry.clear();
+    this.cssGraph.invalidate();
+    this.generatedPageStyles.clear();
+    this.warnedUnknownTags.clear();
   }
 
   /**
@@ -66,13 +100,52 @@ export class TemplateEngine {
    * 3. Resolving <component> tags recursively
    * 4. Resolving conditionals (if attribute and <if> block)
    * 5. Interpolating data variables (with ?? fallback support)
+   * 6. Auto-inject Web Component scripts
+   * 7. Resolving Scoped CSS and stylesheets according to cssStrategy
    */
   public async renderPage(pageHtml: string, currentFile = ""): Promise<string> {
     const data = await this.loadData();
     const context: Record<string, any> = { ...data };
 
+    // Analyze CSS dependency graph for global root and components
+    await this.cssGraph.analyze(this.vfs);
+    const globalRoot = this.cssGraph.getGlobalRoot();
+    if (globalRoot.conflicts.length > 1) {
+      const relConflicts = globalRoot.conflicts.map((c) => relative(this.config.root, c));
+      console.warn(
+        `\x1b[33m⚠ [Bustatic Conflict Warning]\x1b[0m Multiple orphan global CSS roots detected: ${relConflicts.map((c) => `"${c}"`).join(", ")}. Please link them via @import in a single root file or co-locate them with a component/page.`
+      );
+    }
+
+    // Check for co-located sibling CSS for the page itself if it has a single root element
+    let processedHtml = pageHtml;
+    if (currentFile && currentFile.endsWith(".html")) {
+      const siblingCssPath = currentFile.replace(/\.html$/, ".css");
+      if (this.vfs.hasFile(siblingCssPath)) {
+        let siblingCss = "";
+        try {
+          siblingCss = await this.cssGraph.flattenCss(siblingCssPath, this.vfs);
+        } catch {
+          siblingCss = await Bun.file(siblingCssPath).text();
+        }
+
+        if (siblingCss.trim().length > 0) {
+          const withScopedCss = attachSiblingScopedCss(processedHtml, siblingCss);
+          if (withScopedCss !== null) {
+            processedHtml = withScopedCss;
+          } else {
+            const relPage = relative(this.config.root, currentFile);
+            const relCss = relative(this.config.root, siblingCssPath);
+            console.warn(
+              `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Page "${relPage}" has a sibling CSS file ("${relCss}"), but does not have a single root element. Scoped styles were not applied.`
+            );
+          }
+        }
+      }
+    }
+
     // 1. Resolve Layout (if page specifies <layout src="...">)
-    let composed = await this.resolveLayout(pageHtml, context, currentFile);
+    let composed = await this.resolveLayout(processedHtml, context, currentFile);
 
     // 2. Resolve <each> blocks
     composed = await this.resolveEach(composed, context, currentFile);
@@ -86,10 +159,303 @@ export class TemplateEngine {
     // 5. Interpolate data variables
     composed = this.interpolate(composed, context);
 
-    // 6. Auto-inject Web Component scripts
-    composed = this.injectWebComponents(composed);
+    // 6. Auto-inject Web Components with Declarative Shadow DOM
+    composed = await this.resolveWebComponents(composed, context);
+
+    // 7. Resolve Scoped CSS & Stylesheets
+    composed = await this.resolveCss(composed, currentFile);
 
     return composed;
+  }
+
+  /**
+   * Processes scoped styles (<style scoped>) and manages CSS injection based on config.cssStrategy:
+   * - "inline": inlines global stylesheets and scoped styles directly into <head> (default).
+   * - "external": leaves global stylesheets as <link> and links page-specific scoped CSS as <link>.
+   */
+  public async resolveCss(
+    html: string,
+    currentFile = "",
+    extraScopedRules: string[] = []
+  ): Promise<string> {
+    // 1. Extract scoped styles from HTML
+    const { html: cleanHtml, scopedRules } = extractScopedStyles(html, this.scopeRegistry);
+    let result = cleanHtml;
+
+    const allScopedRules = [...scopedRules, ...extraScopedRules];
+    const hasScopedRules = allScopedRules.length > 0;
+    const scopedCssText = hasScopedRules ? allScopedRules.join("\n\n") : "";
+
+    const globalRoot = this.cssGraph.getGlobalRoot();
+    let globalCssContent: string | null = null;
+    if (globalRoot.root) {
+      globalCssContent = await this.cssGraph.flattenCss(globalRoot.root, this.vfs);
+    }
+
+    if (this.config.cssStrategy === "inline") {
+      // Inline global stylesheets from local <link rel="stylesheet" href="...">
+      const linkRegex = /<link\s+[^>]*rel=["']stylesheet["'][^>]*>/gi;
+      const links = Array.from(result.matchAll(linkRegex));
+      let hadManualGlobalLink = false;
+
+      for (const m of links) {
+        const fullTag = m[0];
+        const hrefMatch = fullTag.match(/href=["']([^"']+)["']/i);
+        if (!hrefMatch) continue;
+
+        const href = hrefMatch[1];
+        // Skip external or protocol-relative URLs
+        if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("//")) {
+          continue;
+        }
+
+        let cssFilePath = "";
+        if (href.startsWith("/")) {
+          cssFilePath = join(this.config.root, href.slice(1));
+        } else {
+          const fromDir = currentFile ? dirname(currentFile) : this.config.pagesDir;
+          cssFilePath = resolve(fromDir, href);
+        }
+
+        if (this.vfs.hasFile(cssFilePath) || existsSync(cssFilePath)) {
+          let cssContent = "";
+          try {
+            cssContent = await this.cssGraph.flattenCss(cssFilePath, this.vfs);
+          } catch {
+            cssContent = await Bun.file(cssFilePath).text();
+          }
+
+          const styleBlock = `<style id="__bustatic_global">\n${cssContent}\n</style>`;
+          result = result.replace(fullTag, styleBlock);
+          hadManualGlobalLink = true;
+        }
+      }
+
+      // If global root exists and was not inlined via manual <link>, auto-inject it!
+      const headMatch = result.match(/<head[\s\S]*?<\/head>/i);
+      const headHasGlobalStyle = headMatch ? headMatch[0].includes('id="__bustatic_global"') : false;
+      if (!hadManualGlobalLink && !headHasGlobalStyle && globalCssContent) {
+        const globalTag = `<style id="__bustatic_global">\n${globalCssContent}\n</style>`;
+        if (result.includes("</head>")) {
+          result = result.replace("</head>", `  ${globalTag}\n</head>`);
+        } else if (result.includes("</body>")) {
+          result = result.replace("</body>", `  ${globalTag}\n</body>`);
+        } else {
+          result = `${globalTag}\n${result}`;
+        }
+      }
+
+      // Inline scoped styles directly after global styles or in <head>
+      if (hasScopedRules) {
+        const scopedTag = `<style id="__bustatic_scoped">\n${scopedCssText}\n</style>`;
+        if (result.includes("</head>")) {
+          result = result.replace("</head>", `  ${scopedTag}\n</head>`);
+        } else if (result.includes("</body>")) {
+          result = result.replace("</body>", `  ${scopedTag}\n</body>`);
+        } else {
+          result = `${result}\n${scopedTag}`;
+        }
+      }
+    } else {
+      // "external" mode:
+      // Auto-inject global stylesheet link if not already present
+      if (globalRoot.relativeRoot) {
+        const globalPublicHref = `/${globalRoot.relativeRoot.replace(/\\/g, "/")}`;
+        if (!result.includes(globalPublicHref)) {
+          const globalLink = `<link rel="stylesheet" href="${globalPublicHref}">`;
+          if (result.includes("</head>")) {
+            result = result.replace("</head>", `  ${globalLink}\n</head>`);
+          } else if (result.includes("</body>")) {
+            result = result.replace("</body>", `  ${globalLink}\n</body>`);
+          } else {
+            result = `${globalLink}\n${result}`;
+          }
+        }
+      }
+
+      // Link page-specific scoped CSS if any rules exist
+      if (hasScopedRules) {
+        let pageRelPath = currentFile ? relative(this.config.pagesDir, currentFile) : "page.html";
+        if (pageRelPath.startsWith("..") || !currentFile) {
+          pageRelPath = "index.html";
+        }
+        const scopedCssRel = pageRelPath.replace(/\.html$/, ".scoped.css");
+        const scopedPublicPath = "/" + scopedCssRel.replace(/\\/g, "/");
+
+        // Save in memory for dev server / builder
+        this.generatedPageStyles.set(scopedPublicPath, scopedCssText);
+        this.generatedPageStyles.set(scopedCssRel, scopedCssText);
+
+        const linkTag = `<link rel="stylesheet" href="${scopedPublicPath}">`;
+        if (result.includes("</head>")) {
+          result = result.replace("</head>", `  ${linkTag}\n</head>`);
+        } else if (result.includes("</body>")) {
+          result = result.replace("</body>", `  ${linkTag}\n</body>`);
+        } else {
+          result = `${result}\n${linkTag}`;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Automatically scans HTML for declared Custom Element tags (e.g. <counter-button>),
+   * injects Declarative Shadow DOM (<template shadowrootmode="open">) if triad files exist,
+   * and injects the corresponding <script type="module" src="..."> into <head>.
+   */
+  public async resolveWebComponents(
+    html: string,
+    context: Record<string, any> = {}
+  ): Promise<string> {
+    const scriptsToInject: string[] = [];
+    const injectedPaths = new Set<string>();
+
+    let result = html;
+    const globalRoot = this.cssGraph.getGlobalRoot();
+    let globalCssBlock = "";
+    if (globalRoot.root) {
+      if (this.config.cssStrategy === "inline") {
+        const globalCss = await this.cssGraph.flattenCss(globalRoot.root, this.vfs);
+        globalCssBlock = `<style data-bustatic="global">\n${globalCss.trim()}\n</style>`;
+      } else if (globalRoot.relativeRoot) {
+        const globalPublicHref = `/${globalRoot.relativeRoot.replace(/\\/g, "/")}`;
+        globalCssBlock = `<link rel="stylesheet" href="${globalPublicHref}">`;
+      }
+    }
+
+    let iterations = 0;
+    const maxIterations = 10;
+
+    while (iterations < maxIterations) {
+      iterations++;
+      const tagRegex = /<([a-z][a-z0-9]*-[a-z0-9-]*)/gi;
+      let match: RegExpExecArray | null;
+      const discoveredTags = new Set<string>();
+
+      while ((match = tagRegex.exec(result)) !== null) {
+        discoveredTags.add(match[1].toLowerCase());
+      }
+
+      let modified = false;
+
+      for (const tag of discoveredTags) {
+        const scriptPath = this.vfs.registry.findScriptForTag(tag);
+        if (!scriptPath) {
+          if (!RESERVED_W3C_TAGS.has(tag) && !this.warnedUnknownTags.has(tag)) {
+            this.warnedUnknownTags.add(tag);
+            console.warn(
+              `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Custom Element "<${tag}>" was found in HTML, but no matching Web Component file was found in the project.`
+            );
+          }
+          continue;
+        }
+
+        this.vfs.registry.markTagUsed(tag);
+        const rel = relative(this.config.root, scriptPath).replace(/\\/g, "/");
+        const publicSrc = rel.startsWith("/") ? rel : `/${rel}`;
+
+        if (!injectedPaths.has(publicSrc) && !hasScriptWithSrc(result, publicSrc)) {
+          injectedPaths.add(publicSrc);
+          scriptsToInject.push(`<script type="module" src="${publicSrc}"></script>`);
+        }
+
+        // Check for component triad (.html, .css)
+        const triad = findTriadForScript(scriptPath, (p) => this.vfs.hasFile(p));
+        if (!triad) continue;
+
+        // Only construct Declarative Shadow DOM if .html or .css exists
+        if (!triad.htmlPath && !triad.cssPath) continue;
+
+        // Check if there are instances of <tag> that don't have <template shadowrootmode="open"> yet
+        const elementRegex = new RegExp(`<${tag}(\\s+[^>]*?)?(\\s*\\/?)>`, "gi");
+        let hasUnexpanded = false;
+        result.replace(elementRegex, (fullMatch, _attrs, _selfClose, offset, fullString) => {
+          const remainder = fullString.slice(offset + fullMatch.length).trimStart();
+          if (!remainder.startsWith("<template") || !remainder.includes("shadowrootmode=")) {
+            hasUnexpanded = true;
+          }
+          return fullMatch;
+        });
+
+        if (!hasUnexpanded) continue;
+
+        let siblingCssBlock = "";
+        if (triad.cssPath) {
+          let siblingCss = "";
+          try {
+            siblingCss = await this.cssGraph.flattenCss(triad.cssPath, this.vfs);
+          } catch {
+            siblingCss = await Bun.file(triad.cssPath).text();
+          }
+
+          // Replace & with :host for Shadow DOM native styling
+          siblingCss = siblingCss.replace(/(^|[^a-zA-Z0-9_-])&(?![\w-])/g, "$1:host");
+          if (siblingCss.trim().length > 0) {
+            siblingCssBlock = `<style>\n${siblingCss.trim()}\n</style>`;
+          }
+        }
+
+        let templateHtml = "<slot></slot>";
+        if (triad.htmlPath) {
+          let rawHtml = "";
+          try {
+            rawHtml = await this.vfs.readText(triad.htmlPath);
+          } catch {
+            rawHtml = await Bun.file(triad.htmlPath).text();
+          }
+          rawHtml = await this.resolveComponents(rawHtml, context, triad.htmlPath);
+          rawHtml = this.resolveConditionals(rawHtml, context);
+          rawHtml = this.interpolate(rawHtml, context);
+          templateHtml = rawHtml.trim();
+        }
+
+        const shadowParts: string[] = [];
+        if (globalCssBlock) shadowParts.push(globalCssBlock);
+        if (siblingCssBlock) shadowParts.push(siblingCssBlock);
+        if (templateHtml) shadowParts.push(templateHtml);
+
+        const dsdContent = shadowParts.join("\n");
+        const templateTag = `<template shadowrootmode="open">\n${dsdContent}\n</template>`;
+
+        // Inject <template shadowrootmode="open"> into each unexpanded instance of <tag ...> in result
+        result = result.replace(elementRegex, (fullMatch, attrs, selfClose, offset, fullString) => {
+          const isSelfClosing = selfClose && selfClose.trim() === "/";
+          const attrStr = attrs ? ` ${attrs.trim()}` : "";
+
+          // Check if immediately followed by <template shadowrootmode
+          const remainder = fullString.slice(offset + fullMatch.length).trimStart();
+          if (remainder.startsWith("<template") && remainder.includes("shadowrootmode=")) {
+            return fullMatch;
+          }
+
+          modified = true;
+          if (isSelfClosing) {
+            return `<${tag}${attrStr}>\n${templateTag}\n</${tag}>`;
+          } else {
+            return `<${tag}${attrStr}>\n${templateTag}`;
+          }
+        });
+      }
+
+      if (!modified) {
+        break;
+      }
+    }
+
+    if (scriptsToInject.length > 0) {
+      const scriptTags = scriptsToInject.join("\n  ");
+      if (result.includes("</head>")) {
+        result = result.replace("</head>", `  ${scriptTags}\n</head>`);
+      } else if (result.includes("</body>")) {
+        result = result.replace("</body>", `  ${scriptTags}\n</body>`);
+      } else {
+        result = `${result}\n${scriptTags}`;
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -112,7 +478,7 @@ export class TemplateEngine {
         const publicSrc = rel.startsWith("/") ? rel : `/${rel}`;
 
         // Don't inject if already injected or already referenced in the HTML document
-        if (!injectedPaths.has(publicSrc) && !html.includes(publicSrc)) {
+        if (!injectedPaths.has(publicSrc) && !hasScriptWithSrc(html, publicSrc)) {
           injectedPaths.add(publicSrc);
           scriptsToInject.push(`<script type="module" src="${publicSrc}"></script>`);
         }
@@ -179,12 +545,31 @@ export class TemplateEngine {
     // Process components inside page inner content using the page's currentFile path
     resolvedInner = await this.resolveComponents(resolvedInner, context, currentFile);
 
+    // Find all slot names declared by this layout
+    const layoutSlotNames = new Set<string>();
+    const layoutSlotRegex = /<slot\s+name=["']([^"']+)["']/gi;
+    let sm: RegExpExecArray | null;
+    while ((sm = layoutSlotRegex.exec(layoutTemplate)) !== null) {
+      layoutSlotNames.add(sm[1]);
+    }
+
     // Extract named slots and default content
     const slots = new Map<string, string>();
     const slotElRegex = /<([a-zA-Z0-9_-]+)\s+[^>]*slot=["']([^"']+)["'][^>]*>([\s\S]*?)<\/\1>/gi;
-    const defaultContent = resolvedInner.replace(slotElRegex, (_match, _tag, slotName, content) => {
-      slots.set(slotName, content.trim());
-      return "";
+    const defaultContent = resolvedInner.replace(slotElRegex, (match, _tag, slotName, content, offset) => {
+      if (layoutSlotNames.has(slotName) && !slots.has(slotName)) {
+        // Ensure this slot element is not nested inside an open Web Component
+        const preceding = resolvedInner.slice(0, offset);
+        const openCustomTags = preceding.match(/<([a-z][a-z0-9]*-[a-z0-9-]*)[^>]*>/gi) || [];
+        const closeCustomTags = preceding.match(/<\/([a-z][a-z0-9]*-[a-z0-9-]*)[^>]*>/gi) || [];
+        if (openCustomTags.length > closeCustomTags.length) {
+          return match;
+        }
+
+        slots.set(slotName, content.trim());
+        return "";
+      }
+      return match;
     }).trim();
 
     // Replace named slots in the layout: <slot name="slotName">fallback</slot> or <slot name="slotName" />
@@ -339,7 +724,77 @@ export class TemplateEngine {
         throw new Error(`[Bustatic] Component not found: "${item.src}" at ${compPath}`);
       }
 
+      const ext = extname(compPath).toLowerCase();
+      if (ext === ".ts" || ext === ".js" || ext === ".tsx" || ext === ".jsx") {
+        let tag = this.vfs.registry.getTagsForFile(compPath)[0];
+        if (!tag) {
+          let code: string | undefined;
+          try {
+            code = await this.vfs.readText(compPath);
+          } catch {
+            code = await Bun.file(compPath).text();
+          }
+          const registered = this.vfs.registry.registerFile(compPath, code);
+          tag = registered[0];
+        }
+        if (!tag) {
+          tag = filenameToTagName(compPath) || undefined;
+        }
+
+        if (!tag) {
+          throw new Error(
+            `[Bustatic] Could not determine Custom Element tag name for Web Component file "${item.src}". ` +
+            `Ensure the filename follows kebab-case (e.g. "my-element.ts") or PascalCase (e.g. "MyElement.ts").`
+          );
+        }
+
+        // Build HTML attributes from props (excluding "src")
+        const attrEntries = Object.entries(item.props).filter(([k]) => k !== "src");
+        const attrString = attrEntries.length > 0
+          ? " " + attrEntries.map(([k, v]) => `${k}="${v}"`).join(" ")
+          : "";
+
+        // Resolve any nested components or expressions inside children
+        let innerChildren = item.children;
+        if (innerChildren) {
+          innerChildren = await this.resolveComponents(innerChildren, context, currentFile, depth + 1);
+          innerChildren = this.resolveConditionals(innerChildren, context);
+          innerChildren = this.interpolate(innerChildren, context);
+        }
+
+        const replacement = innerChildren
+          ? `<${tag}${attrString}>${innerChildren}</${tag}>`
+          : `<${tag}${attrString}></${tag}>`;
+
+        result = result.replace(item.fullMatch, replacement);
+        continue;
+      }
+
       let compTemplate = await this.vfs.readText(compPath);
+
+      // Check for co-located sibling CSS file (e.g. footer.html + footer.css)
+      const siblingCssPath = compPath.replace(/\.html$/, ".css");
+      if (this.vfs.hasFile(siblingCssPath)) {
+        let siblingCss = "";
+        try {
+          siblingCss = await this.cssGraph.flattenCss(siblingCssPath, this.vfs);
+        } catch {
+          siblingCss = await Bun.file(siblingCssPath).text();
+        }
+
+        if (siblingCss.trim().length > 0) {
+          const withScopedCss = attachSiblingScopedCss(compTemplate, siblingCss);
+          if (withScopedCss !== null) {
+            compTemplate = withScopedCss;
+          } else {
+            const relComp = relative(this.config.root, compPath);
+            const relCss = relative(this.config.root, siblingCssPath);
+            console.warn(
+              `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Component "${relComp}" has a sibling CSS file ("${relCss}"), but does not have a single root element. Scoped styles were not applied.`
+            );
+          }
+        }
+      }
 
       // Combined props with global / spread data
       const compContext = { ...context, ...item.props };
@@ -442,5 +897,9 @@ export class TemplateEngine {
       cur = cur[part];
     }
     return cur;
+  }
+
+  public getUnusedWebComponents(): Array<{ tag: string; file: string }> {
+    return this.vfs.registry.getUnusedComponents();
   }
 }

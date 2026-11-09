@@ -8,6 +8,7 @@ export interface BustaticConfig {
   outDir?: string;
   port?: number;
   minify?: boolean;
+  cssStrategy?: "inline" | "external";
 }
 
 export interface ResolvedConfig {
@@ -20,6 +21,7 @@ export interface ResolvedConfig {
   outDir: string;
   port: number;
   minify: boolean;
+  cssStrategy: "inline" | "external";
 }
 
 export interface PageInfo {
