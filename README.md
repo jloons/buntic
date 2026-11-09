@@ -14,6 +14,7 @@ Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megaby
 - 📦 **Cero Dependencias Externas:** Solo necesitas tener instalado Bun.
 - 📑 **Plantillas Estándar:** Usa `<layout>`, `<component>` y `<slot>` directamente en archivos HTML estándar.
 - 🔄 **Live-Reload Integrado:** Servidor de desarrollo con WebSockets nativos y recarga en caliente automática.
+- 🎨 **Estilos Scoped Nativos:** Escribe `<style scoped>` dentro de cualquier elemento con sintaxis `&`, deduplicación automática y cero parpadeo (FOUC).
 - 🧩 **Web Components:** Reactividad e interactividad del lado del cliente usando estándares web.
 - 📊 **Datos JSON:** Carga automática de datos estructurados desde la carpeta `data/`.
 - 🛠 **CLI y API Programática:** Úsalo globalmente, con `bunx`, en tus `package.json` scripts o impórtalo en tu código TypeScript.
@@ -70,6 +71,7 @@ mi-sitio/
 - [Primeros Pasos](docs/getting-started.md)
 - [Guía de Plantillas y Componentes](docs/templating.md)
 - [Referencia del CLI](docs/cli.md)
+- [Roadmap del Proyecto](ROADMAP.md)
 
 ---
 
