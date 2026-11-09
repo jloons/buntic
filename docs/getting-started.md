@@ -78,3 +78,20 @@ Empaqueta y minifica todo el sitio en la carpeta `dist/`:
 bustatic build
 ```
 Bun procesará automáticamente los archivos HTML, extraerá y empaquetará los módulos TypeScript/JavaScript y hojas de estilo CSS en chunks minificados y con hash de caché.
+
+---
+
+## Configuración Opcional (`bustatic.config.ts`)
+
+Puedes personalizar el comportamiento de Bustatic creando un archivo `bustatic.config.ts`:
+
+```ts
+import { defineConfig } from "bustatic";
+
+export default defineConfig({
+  port: 3000,
+  minify: true,
+  // Estrategia de CSS: "inline" (por defecto para cero FOUC) o "external"
+  cssStrategy: "inline",
+});
+```
