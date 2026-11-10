@@ -1,5 +1,6 @@
 node_modules
 dist
+.bustatic
 .bustatic-staging
 .DS_Store
 *.log

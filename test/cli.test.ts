@@ -5,6 +5,7 @@ describe("CLI", () => {
   const cliPath = join(import.meta.dir, "../bin/bustatic.ts");
 
   test("prints version with --version", async () => {
+    const pkg = await Bun.file(join(import.meta.dir, "../package.json")).json();
     const proc = Bun.spawn(["bun", cliPath, "--version"], {
       stdout: "pipe",
       stderr: "pipe",
@@ -13,7 +14,7 @@ describe("CLI", () => {
     const output = await new Response(proc.stdout).text();
     await proc.exited;
 
-    expect(output).toContain("bustatic v0.1.0");
+    expect(output).toContain(`bustatic v${pkg.version}`);
     expect(proc.exitCode).toBe(0);
   });
 

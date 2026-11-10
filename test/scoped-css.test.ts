@@ -1,4 +1,7 @@
 import { describe, test, expect, spyOn } from "bun:test";
+import { resolve, join } from "node:path";
+
+const exampleRoot = resolve(__dirname, "../examples/simple");
 import {
   ScopeRegistry,
   transformScopedCss,
@@ -203,13 +206,13 @@ describe("Scoped CSS Processor", () => {
   describe("Integration with TemplateEngine & Deduplication", () => {
     function createMockEngine(cssStrategy: "inline" | "external" = "inline"): TemplateEngine {
       const config: ResolvedConfig = {
-        root: "/workspace/bustatic/example",
-        pagesDir: "/workspace/bustatic/example/pages",
-        layoutsDir: "/workspace/bustatic/example/layouts",
-        componentsDir: "/workspace/bustatic/example/components",
-        dataDir: "/workspace/bustatic/example/data",
-        publicDir: "/workspace/bustatic/example/public",
-        outDir: "/workspace/bustatic/example/dist",
+        root: exampleRoot,
+        pagesDir: join(exampleRoot, "src/pages"),
+        layoutsDir: join(exampleRoot, "src/layouts"),
+        componentsDir: join(exampleRoot, "src/components"),
+        dataDir: join(exampleRoot, "src/data"),
+        publicDir: join(exampleRoot, "src/public"),
+        outDir: join(exampleRoot, "dist"),
         port: 3000,
         minify: true,
         cssStrategy,
@@ -242,7 +245,7 @@ describe("Scoped CSS Processor", () => {
         site: { features: ["Rapidez", "Cero Dependencias", "Nativo"] },
       };
 
-      const rendered = await engine.renderPage(pageHtml, "/workspace/bustatic/example/pages/test.html");
+      const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/test.html"));
 
       // Verify all card elements have the SAME class
       const matches = Array.from(rendered.matchAll(/class="card (bs-[a-z0-9]+)"/g));
@@ -278,7 +281,7 @@ describe("Scoped CSS Processor", () => {
         </html>
       `;
 
-      const rendered = await engine.renderPage(pageHtml, "/workspace/bustatic/example/pages/test.html");
+      const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/test.html"));
 
       // Verify global styles were inlined
       expect(rendered).toContain('<style id="__bustatic_global">');
@@ -314,7 +317,7 @@ describe("Scoped CSS Processor", () => {
         </html>
       `;
 
-      const rendered = await engine.renderPage(pageHtml, "/workspace/bustatic/example/pages/index.html");
+      const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/index.html"));
 
       // Verify global styles remain linked as external
       expect(rendered).toContain('<link rel="stylesheet" href="/styles/main.css">');
@@ -380,13 +383,13 @@ describe("Scoped CSS Processor", () => {
   describe("Co-located Sibling CSS Files (.html + .css)", () => {
     function createMockEngine(): TemplateEngine {
       const config: ResolvedConfig = {
-        root: "/workspace/bustatic/example",
-        pagesDir: "/workspace/bustatic/example/pages",
-        layoutsDir: "/workspace/bustatic/example/layouts",
-        componentsDir: "/workspace/bustatic/example/components",
-        dataDir: "/workspace/bustatic/example/data",
-        publicDir: "/workspace/bustatic/example/public",
-        outDir: "/workspace/bustatic/example/dist",
+        root: exampleRoot,
+        pagesDir: join(exampleRoot, "src/pages"),
+        layoutsDir: join(exampleRoot, "src/layouts"),
+        componentsDir: join(exampleRoot, "src/components"),
+        dataDir: join(exampleRoot, "src/data"),
+        publicDir: join(exampleRoot, "src/public"),
+        outDir: join(exampleRoot, "dist"),
         port: 3000,
         minify: true,
         cssStrategy: "inline",
@@ -398,8 +401,8 @@ describe("Scoped CSS Processor", () => {
       const engine = createMockEngine();
 
       // Register virtual component and sibling CSS in VFS
-      const compPath = "/workspace/bustatic/example/components/my-footer.html";
-      const cssPath = "/workspace/bustatic/example/components/my-footer.css";
+      const compPath = join(exampleRoot, "components/my-footer.html");
+      const cssPath = join(exampleRoot, "components/my-footer.css");
 
       (engine.vfs as any).knownFiles.add(compPath);
       (engine.vfs as any).contentCache.set(
@@ -423,7 +426,7 @@ describe("Scoped CSS Processor", () => {
         </html>
       `;
 
-      const rendered = await engine.renderPage(pageHtml, "/workspace/bustatic/example/pages/test.html");
+      const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/test.html"));
 
       // Verify the footer received the scoped class
       expect(rendered).toMatch(/<footer class="my-footer bs-[a-z0-9]+">/);
@@ -438,8 +441,8 @@ describe("Scoped CSS Processor", () => {
     test("does NOT apply sibling CSS and warns when component has multiple root elements", async () => {
       const engine = createMockEngine();
 
-      const compPath = "/workspace/bustatic/example/components/fragment-item.html";
-      const cssPath = "/workspace/bustatic/example/components/fragment-item.css";
+      const compPath = join(exampleRoot, "components/fragment-item.html");
+      const cssPath = join(exampleRoot, "components/fragment-item.css");
 
       (engine.vfs as any).knownFiles.add(compPath);
       (engine.vfs as any).contentCache.set(
@@ -470,7 +473,7 @@ describe("Scoped CSS Processor", () => {
       };
 
       try {
-        const rendered = await engine.renderPage(pageHtml, "/workspace/bustatic/example/pages/test.html");
+        const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/test.html"));
 
         // Verify warning was emitted
         expect(warnings.some((w) => w.includes("fragment-item.html") && w.includes("does not have a single root element"))).toBe(true);
@@ -488,8 +491,8 @@ describe("Scoped CSS Processor", () => {
     test("prioritizes inline <style scoped> over sibling CSS through source order cascade", async () => {
       const engine = createMockEngine();
 
-      const compPath = "/workspace/bustatic/example/components/priority-box.html";
-      const cssPath = "/workspace/bustatic/example/components/priority-box.css";
+      const compPath = join(exampleRoot, "components/priority-box.html");
+      const cssPath = join(exampleRoot, "components/priority-box.css");
 
       (engine.vfs as any).knownFiles.add(compPath);
       (engine.vfs as any).contentCache.set(
@@ -518,7 +521,7 @@ describe("Scoped CSS Processor", () => {
         </html>
       `;
 
-      const rendered = await engine.renderPage(pageHtml, "/workspace/bustatic/example/pages/test.html");
+      const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/test.html"));
 
       // Verify the box element received both classes
       expect(rendered).toMatch(/<div class="box (bs-[a-z0-9]+) (bs-[a-z0-9]+)">/);

@@ -6,7 +6,7 @@ import { mkdirSync, rmSync } from "node:fs";
 
 describe("Root Discovery & Actionable Errors", () => {
   test("finds project root from explicit argument", () => {
-    const exampleDir = join(import.meta.dir, "../example");
+    const exampleDir = join(import.meta.dir, "../examples/simple");
     const root = findProjectRoot(exampleDir);
     expect(root).toBe(exampleDir);
   });
@@ -17,10 +17,10 @@ describe("Root Discovery & Actionable Errors", () => {
     }).toThrow("Specified project directory does not exist");
   });
 
-  test("detects project root by walking upward from a subfolder", () => {
-    const subfolder = join(import.meta.dir, "../example/pages");
+  test("detects project root by walking upward from a subfolder (with src/pages)", () => {
+    const subfolder = join(import.meta.dir, "../examples/simple/src/pages");
     const detected = findProjectRoot(".", subfolder);
-    const expected = join(import.meta.dir, "../example");
+    const expected = join(import.meta.dir, "../examples/simple");
     expect(detected).toBe(expected);
   });
 
@@ -39,31 +39,31 @@ describe("Root Discovery & Actionable Errors", () => {
 });
 
 describe("VirtualFileSystem (VFS)", () => {
-  const exampleDir = join(import.meta.dir, "../example");
+  const exampleDir = join(import.meta.dir, "../examples/simple");
 
   test("indexes project files in memory", () => {
     const vfs = new VirtualFileSystem(exampleDir);
-    expect(vfs.hasFile(join(exampleDir, "components/card.html"))).toBe(true);
-    expect(vfs.hasFile(join(exampleDir, "data/features.json"))).toBe(true);
+    expect(vfs.hasFile(join(exampleDir, "src/components/card.html"))).toBe(true);
+    expect(vfs.hasFile(join(exampleDir, "src/data/features.json"))).toBe(true);
     expect(vfs.hasFile(join(exampleDir, "non-existent-file.html"))).toBe(false);
   });
 
   test("resolves root-relative (/components/card.html) and relative paths (../components/card.html)", () => {
     const vfs = new VirtualFileSystem(exampleDir);
-    const pageFile = join(exampleDir, "pages/index.html");
-    const componentsDir = join(exampleDir, "components");
+    const pageFile = join(exampleDir, "src/pages/index.html");
+    const componentsDir = join(exampleDir, "src/components");
 
     // 1. Root-relative
     const rootRel = vfs.resolvePath("/components/card.html", pageFile, componentsDir);
-    expect(rootRel).toBe(join(exampleDir, "components/card.html"));
+    expect(rootRel).toBe(join(exampleDir, "src/components/card.html"));
 
     // 2. Relative from page
     const rel = vfs.resolvePath("../components/card.html", pageFile, componentsDir);
-    expect(rel).toBe(join(exampleDir, "components/card.html"));
+    expect(rel).toBe(join(exampleDir, "src/components/card.html"));
 
     // 3. Bare convention name
     const bare = vfs.resolvePath("card.html", pageFile, componentsDir);
-    expect(bare).toBe(join(exampleDir, "components/card.html"));
+    expect(bare).toBe(join(exampleDir, "src/components/card.html"));
   });
 
   test("caches content in RAM and invalidates on change", async () => {

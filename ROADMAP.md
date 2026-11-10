@@ -4,9 +4,9 @@ Este documento define la visión técnica y las etapas de desarrollo planificada
 
 ---
 
-## 📍 Estado Actual: v0.1.0 (Fundación Estable)
+## 📍 Estado Actual: v0.3.0 (Assets, Object Storage y Suite SEO)
 
-La versión fundacional cuenta con un motor de compilación robusto, cobertura de pruebas completa y rendimiento sobresaliente:
+Bustatic cuenta con un motor de compilación maduro, cobertura de pruebas completa (100+ tests pasando) y cero dependencias de terceros:
 
 - [x] **Motor de Plantillas Estándar:** `<layout>`, `<slot>` y slots con nombre, directiva `<each>` con auto-spread, y renderizado condicional con `<if is="...">` / `<else>`.
 - [x] **Virtual File System (VFS) en RAM:** Indexación instantánea en memoria y resolución de rutas relativas (`./`, `../`) con soporte nativo para navegación `Ctrl + Click` en Visual Studio Code.
@@ -24,40 +24,54 @@ La versión fundacional cuenta con un motor de compilación robusto, cobertura d
 
 ## 🚀 Fase 1: Enrutamiento Dinámico, Datos Avanzados y Motores SQL Nativos (v0.2.0)
 
-El objetivo de esta fase es aprovechar las capacidades nativas en C++ del runtime de Bun para generar sitios a partir de fuentes de datos dinámicas y bases de datos relacionales sin requerir librerías o dependencias externas pesadas.
-
-- [ ] **Enrutamiento Dinámico Basado en Archivos:**
+- [x] **Enrutamiento Dinámico Basado en Archivos:**
   - Sintaxis de rutas con parámetros en la carpeta `pages/`: ej. `pages/blog/[slug].html` o `pages/productos/[categoria]/[id].html`.
   - Mapeo automático de parámetros URL a nombres de archivo de salida limpios (`/blog/mi-articulo/index.html`).
-- [ ] **Loaders de Datos Asíncronos (`.data.ts` / `.data.js`):**
-  - Soporte para archivos de datos que exporten la función `getStaticPaths()`.
-  - Inyección de parámetros (`params`) y propiedades (`props`) directamente en el contexto del motor de plantillas.
-- [ ] **Integración Nativa con `bun:sqlite`:**
-  - Soporte out-of-the-box para consultar bases de datos SQLite locales a velocidad C dentro de los loaders de datos.
-  - Ideal para catálogos, blogs, documentación o sitios de comercio electrónico estáticos generados a partir de bases de datos locales.
-- [ ] **Soporte para Drivers Relacionales Nativos (`Bun.sql`):**
-  - Conexión directa con bases de datos remotas (PostgreSQL, MySQL) durante el proceso de build sin dependencias NPM de terceros.
-- [ ] **Paginación Automática:**
-  - Utilidad declarativa para segmentar colecciones masivas de registros en múltiples páginas (`/articulos/page/1`, `/articulos/page/2`).
+  - Detección preventiva de colisiones de URLs y validación estricta de parámetros en tiempo de build.
+- [x] **Loaders de Datos Asíncronos (`.data.ts` / `.data.js`):**
+  - Soporte co-ubicado para archivos de datos que exporten `export default async function` o `getStaticPaths()`.
+  - Inyección aislada de espacios de nombres reservados: `params.*`, `props.*`, `env.*`, previniendo colisiones.
+  - Almacén global dinámico en memoria RAM (`data/*.ts` y `data/*.json`) con ejecución única compartida para todo el build.
+  - Soporte de entorno seguro: `.env.public` y prefijos `PUBLIC_*` para variables accesibles en plantillas, protegiendo credenciales privadas.
+- [x] **Integración Nativa con `bun:sqlite`:**
+  - Soporte out-of-the-box para consultar bases de datos SQLite locales a velocidad C dentro de los loaders de datos globales y locales.
+  - Pruebas unitarias integradas y portables en memoria.
+- [x] **Soporte para Drivers Relacionales Nativos (`Bun.sql`):**
+  - Conexión directa con bases de datos remotas (PostgreSQL) mediante el driver nativo de Bun sin dependencias NPM de terceros.
+  - Suite de pruebas de integración con contenedores Podman.
+- [x] **Paginación Automática:**
+  - Utilidad declarativa `paginate()` inyectada en los loaders para segmentar colecciones masivas de registros en múltiples páginas (`/articulos`, `/articulos/2`).
+  - Omisión canónica de `/1` para la primera página cumpliendo los estándares de SEO.
+  - Generación automática del objeto de navegación `props.page` (`data`, `currentPage`, `lastPage`, `url.prev`, `url.next`).
+- [x] **Experiencia de Desarrollo en DevServer:**
+  - Resolución al vuelo de rutas dinámicas con live-reload.
+  - Página 404 interactiva asistida con listado y enlaces a todas las rutas disponibles del proyecto.
 
 ---
 
 ## 🎨 Fase 2: Optimización de Assets, Object Storage Remoto y SEO (v0.3.0)
 
-Esta fase se enfoca en la gestión profesional de medios multimedia, integración con almacenamiento en la nube y utilidades esenciales para motores de búsqueda.
+Esta fase dota a Bustatic de gestión profesional de medios multimedia, integración con almacenamiento en la nube y utilidades esenciales para motores de búsqueda.
 
-- [ ] **Pipeline de Imágenes Híbrido (Local y Remoto):**
-  - Compresión y generación automática de formatos modernos de alta eficiencia (`WebP` y `AVIF`).
-  - Generación automática de atributos `srcset`, `sizes` y `loading="lazy"` mediante reescritura con `HTMLRewriter` de Bun.
-- [ ] **Integración con Servidores de Objetos Remotos (Amazon S3, Cloudflare R2, MinIO, GCS):**
-  - Configuración declarativa en `bustatic.config.ts` de proveedores de almacenamiento de objetos.
-  - **Caché Inteligente por ETag:** Verificación preventiva con solicitudes `HEAD` para evitar volver a descargar y recomprimir assets inmutables ya procesados en compilaciones previas.
-  - Almacenamiento local persistente en `.bustatic/cache/images` para acelerar entornos de Integración Continua (CI/CD).
-- [ ] **Generadores SEO out-of-the-box:**
-  - Generación automática de `sitemap.xml` dinámico incorporando todas las rutas estáticas y dinámicas resueltas por SQL o datos.
-  - Generación automática de `robots.txt` configurable.
-  - Generación de feeds RSS 2.0 y Atom para publicaciones y blogs.
-  - Inyección declarativa de metadatos para redes sociales (OpenGraph, Twitter Cards).
+- [x] **Pipeline de Imágenes Híbrido (Local y Remoto):**
+  - Compresión y generación automática a formato `WebP` a velocidad C++ con la clase nativa `Bun.Image`.
+  - Etiqueta declarativa `<photo>` sin colisiones con estándares web (SVG/HTML5), transformada automáticamente al estándar `<img>`.
+  - Detección automática de dimensiones físicas originales (`width` y `height`) para prevenir saltos de maquetación (anti-CLS).
+  - Generación automática de `srcset` multi-resolución y atributo `sizes` cuando se especifican `widths="..."`, evitando sobreescalados más allá del tamaño original.
+  - Carga diferida (`loading="lazy"`) y decodificación asíncrona (`decoding="async"`) por defecto.
+- [x] **Integración con Servidores de Objetos Remotos (Amazon S3, Cloudflare R2, MinIO, GCS):**
+  - Carpeta dedicada `storage/` para interactuar con servidores de blobs y archivos binarios mediante `Bun.S3Client` nativo sin librerías externas de npm.
+  - Detección e inferencia automática del loader por defecto cuando existe un único archivo en `storage/`.
+  - **Caché Persistente Inmutable por ETag:** Almacenamiento local en `.bustatic/cache/images/` indexado por hash SHA-256 `(namespace + key + etag + ancho + webp)`, evitando re-descargas y re-compresiones innecesarias en builds locales y CI/CD.
+  - Opción `--clean-cache` en `bustatic build` / `dev` y comando `bustatic clean` para purgar `dist/` y el caché persistente.
+- [x] **Generadores SEO out-of-the-box:**
+  - Generación automática de `sitemap.xml` dinámico incorporando todas las rutas estáticas y dinámicas resueltas por SQL, JSON o loaders.
+  - Generación de `robots.txt` configurable, respetando archivos manuales en `public/robots.txt`.
+  - Componente declarativo `<seo>` en layouts y páginas con cascada jerárquica (`Config -> Layout -> Page`).
+  - Soporte para retorno de `seo` en loaders dinámicos (`.data.ts`) a nivel raíz sin contaminar `props`.
+  - Inyección automática de `og:title`, `og:description`, `og:url`, `link[rel="canonical"]` y Twitter Cards (`summary_large_image`).
+  - Procesamiento automático de imágenes sociales remotas de `storage/` redimensionadas a formato social card (1200x630 WebP) con URL pública absoluta.
+  - Generación de feeds RSS 2.0 (`rss.xml`) y Atom 1.0 (`atom.xml`) ordenados cronológicamente a partir de rutas con propiedad `feed`.
 
 ---
 

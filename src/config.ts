@@ -1,4 +1,4 @@
-import { resolve, join, dirname } from "node:path";
+import { resolve, join, dirname, basename } from "node:path";
 import { existsSync, statSync } from "node:fs";
 import type { BustaticConfig, ResolvedConfig } from "./types.ts";
 
@@ -10,7 +10,7 @@ export function defineConfig(config: BustaticConfig): BustaticConfig {
  * Discovers the Bustatic project root:
  * 1. If an explicit target directory is passed, verifies its existence.
  * 2. If no target (or ".") is passed, walks up from startCwd until it finds
- *    either a "pages" directory or a "bustatic.config.*" file.
+ *    either a "pages" (or "src/pages") directory or a "bustatic.config.*" file.
  * 3. Throws a helpful, actionable error if no root is detected.
  */
 export function findProjectRoot(cliTarget?: string, startCwd = process.cwd()): string {
@@ -24,14 +24,26 @@ export function findProjectRoot(cliTarget?: string, startCwd = process.cwd()): s
 
   let current = resolve(startCwd);
   while (true) {
-    const pagesDir = join(current, "pages");
-    const hasPages = existsSync(pagesDir) && statSync(pagesDir).isDirectory();
     const hasConfig =
       existsSync(join(current, "bustatic.config.ts")) ||
       existsSync(join(current, "bustatic.config.js")) ||
       existsSync(join(current, "bustatic.config.json"));
 
-    if (hasPages || hasConfig) {
+    if (hasConfig) {
+      return current;
+    }
+
+    const srcPagesDir = join(current, "src", "pages");
+    if (existsSync(srcPagesDir) && statSync(srcPagesDir).isDirectory()) {
+      return current;
+    }
+
+    const pagesDir = join(current, "pages");
+    if (existsSync(pagesDir) && statSync(pagesDir).isDirectory()) {
+      // If the current folder is named "src", the actual project root is its parent directory
+      if (basename(current) === "src") {
+        return dirname(current);
+      }
       return current;
     }
 
@@ -46,9 +58,9 @@ export function findProjectRoot(cliTarget?: string, startCwd = process.cwd()): s
     `[Bustatic Error]: No se pudo encontrar la raíz de un proyecto Bustatic.\n` +
     `  Buscado en: ${startCwd} (y directorios superiores)\n\n` +
     `👉 ¿Cómo solucionarlo?\n` +
-    `  1. Asegúrate de tener una carpeta "pages/" con al menos un archivo .html.\n` +
+    `  1. Asegúrate de tener una carpeta "pages/" o "src/pages/" con al menos un archivo .html.\n` +
     `  2. O especifica la ruta de tu proyecto explícitamente:\n` +
-    `     $ bustatic dev <directorio>   (ej: bustatic dev example)\n` +
+    `     $ bustatic dev <directorio>   (ej: bustatic dev examples/simple)\n` +
     `  3. O crea un archivo de configuración "bustatic.config.json".`
   );
 }
@@ -81,16 +93,35 @@ export async function resolveConfig(
     ...overrides,
   };
 
+  const hasSrcDir = existsSync(join(root, "src")) && statSync(join(root, "src")).isDirectory();
+  const pickDir = (name: string, checkRootFirst = false): string => {
+    if (checkRootFirst) {
+      if (existsSync(join(root, name))) return name;
+      if (hasSrcDir && existsSync(join(root, "src", name))) return join("src", name);
+      return name;
+    }
+    if (hasSrcDir && existsSync(join(root, "src", name))) {
+      return join("src", name);
+    }
+    return name;
+  };
+
   return {
     root,
-    pagesDir: resolve(root, merged.pagesDir ?? "pages"),
-    layoutsDir: resolve(root, merged.layoutsDir ?? "layouts"),
-    componentsDir: resolve(root, merged.componentsDir ?? "components"),
-    dataDir: resolve(root, merged.dataDir ?? "data"),
-    publicDir: resolve(root, merged.publicDir ?? "public"),
+    pagesDir: resolve(root, merged.pagesDir ?? pickDir("pages")),
+    layoutsDir: resolve(root, merged.layoutsDir ?? pickDir("layouts")),
+    componentsDir: resolve(root, merged.componentsDir ?? pickDir("components")),
+    dataDir: resolve(root, merged.dataDir ?? pickDir("data")),
+    publicDir: resolve(root, merged.publicDir ?? pickDir("public", true)),
+    storageDir: resolve(root, merged.storageDir ?? pickDir("storage")),
+    cacheDir: resolve(root, merged.cacheDir ?? ".bustatic/cache/images"),
     outDir: resolve(root, merged.outDir ?? "dist"),
     port: merged.port ?? 3000,
     minify: merged.minify ?? true,
     cssStrategy: merged.cssStrategy ?? "inline",
+    site: merged.site,
+    seo: merged.seo,
+    feeds: merged.feeds,
+    defaultStorage: merged.defaultStorage,
   };
 }

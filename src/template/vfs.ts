@@ -99,6 +99,8 @@ export class VirtualFileSystem {
       const clean = src.slice(1);
       candidates.push(resolve(this.root, clean));
       candidates.push(resolve(this.root, srcWithHtml.slice(1)));
+      candidates.push(resolve(this.root, "src", clean));
+      candidates.push(resolve(this.root, "src", srcWithHtml.slice(1)));
     }
 
     // 3. Current file directory implicit relative

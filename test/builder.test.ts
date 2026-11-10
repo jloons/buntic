@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { existsSync, rmSync } from "node:fs";
 
 describe("Builder", () => {
-  test("builds the example project successfully", async () => {
-    const exampleDir = join(import.meta.dir, "../example");
+  test("builds the simple example project successfully with src layout", async () => {
+    const exampleDir = join(import.meta.dir, "../examples/simple");
     const outDir = join(exampleDir, "dist");
 
     // Clean any previous dist
@@ -19,34 +19,36 @@ describe("Builder", () => {
     const result = await builder.build();
 
     expect(result.success).toBe(true);
-    expect(result.pagesCount).toBe(2);
+    expect(result.pagesCount).toBe(3);
 
     // Verify generated HTML pages
     const indexHtmlPath = join(outDir, "index.html");
     const aboutHtmlPath = join(outDir, "about.html");
+    const contactHtmlPath = join(outDir, "contact.html");
     expect(existsSync(indexHtmlPath)).toBe(true);
     expect(existsSync(aboutHtmlPath)).toBe(true);
+    expect(existsSync(contactHtmlPath)).toBe(true);
 
     const indexHtml = await Bun.file(indexHtmlPath).text();
-    expect(indexHtml).toContain("Bienvenido a Bustatic");
-    expect(indexHtml).toContain("<interactive-card>");
-    expect(indexHtml).toContain("<counter-button>");
-    expect(indexHtml).toContain('<template shadowrootmode="open">');
-    expect(indexHtml).toContain("</counter-button>");
-    expect(indexHtml).toContain("</interactive-card>");
-    expect(indexHtml).toContain("Inicio - Bustatic");
+    expect(indexHtml).toContain("Inicio | Bustatic Simple");
+    expect(indexHtml).toContain("Características Principales");
+    expect(indexHtml).toContain("feature-card");
+    expect(indexHtml).toContain("Bustatic Simple");
 
     const aboutHtml = await Bun.file(aboutHtmlPath).text();
-    expect(aboutHtml).toContain("Acerca de Bustatic");
+    expect(aboutHtml).toContain("Acerca de este proyecto");
+    expect(aboutHtml).toContain("cero JavaScript");
+
+    const contactHtml = await Bun.file(contactHtmlPath).text();
+    expect(contactHtml).toContain("Contacto");
+    expect(contactHtml).toContain("contacto@example.com");
 
     // Verify robots.txt from public/ copied to dist/
     const robotsPath = join(outDir, "robots.txt");
     expect(existsSync(robotsPath)).toBe(true);
 
-    // In default inline mode, CSS is inlined directly into HTML
+    // In default inline mode, scoped CSS is inlined directly into HTML
     expect(indexHtml).toContain("<style");
-    const hasJsChunk = result.outputFiles.some((f) => f.endsWith(".js"));
-    expect(hasJsChunk).toBe(true);
 
     // Verify external CSS mode emits separate .css chunk
     const externalConfig = await resolveConfig(exampleDir, { cssStrategy: "external" });
@@ -55,5 +57,10 @@ describe("Builder", () => {
     expect(externalResult.success).toBe(true);
     const hasExternalCssChunk = externalResult.outputFiles.some((f) => f.endsWith(".css"));
     expect(hasExternalCssChunk).toBe(true);
+
+    // Clean up dist
+    if (existsSync(outDir)) {
+      rmSync(outDir, { recursive: true, force: true });
+    }
   });
 });

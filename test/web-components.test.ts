@@ -98,7 +98,7 @@ describe("Web Components Auto-Import & Registry (Strict 1:1 Convention)", () => 
 });
 
 describe("Template Engine Declarative Shadow DOM Injection", () => {
-  const exampleRoot = resolve(__dirname, "../example");
+  const exampleRoot = resolve(__dirname, "fixtures/web-components");
   const config: ResolvedConfig = {
     root: exampleRoot,
     pagesDir: join(exampleRoot, "pages"),

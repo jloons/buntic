@@ -32,7 +32,8 @@ Agrega los comandos a tus `scripts` en el `package.json`:
 {
   "scripts": {
     "dev": "bustatic dev",
-    "build": "bustatic build"
+    "build": "bustatic build",
+    "clean": "bustatic clean"
   }
 }
 ```
@@ -41,25 +42,39 @@ Agrega los comandos a tus `scripts` en el `package.json`:
 
 ## Estructura Recomendada de un Proyecto
 
-Por defecto, Bustatic busca las siguientes carpetas en la raíz de tu proyecto:
+Bustatic detecta automáticamente tanto la estructura estándar basada en `src/` (recomendada) como la estructura plana en la raíz:
 
-```
+```text
 mi-sitio/
-├── pages/             # Cada archivo .html se convierte en una ruta web
-│   ├── index.html     # -> /
-│   └── about.html     # -> /about
-├── layouts/           # Plantillas base
-│   └── main.html      # Estructura HTML base con <slot>
-├── components/        # Componentes HTML reutilizables y Web Components
-│   ├── header.html
-│   └── counter.ts
-├── data/              # Archivos de datos JSON accesibles en plantillas
-│   └── site.json
-├── public/            # Archivos estáticos copiados directamente a dist/
-│   └── robots.txt
-└── styles/            # Hojas de estilo CSS procesadas por Bun
-    └── main.css
+├── src/                  # Estructura recomendada (auto-detectada)
+│   ├── pages/            # Cada archivo .html se convierte en una ruta web
+│   │   ├── index.html    # -> /
+│   │   ├── about.html    # -> /about
+│   │   └── blog/
+│   │       ├── [slug].html
+│   │       └── [slug].data.ts
+│   ├── layouts/          # Plantillas base
+│   │   └── main.html     # Estructura HTML base con <slot>
+│   ├── components/       # Componentes HTML reutilizables y Web Components
+│   │   ├── header.html
+│   │   ├── card.html
+│   │   └── counter.ts
+│   ├── data/             # Almacén de datos (SQLite, Postgres, JSON, TS)
+│   │   └── site.ts
+│   ├── storage/          # Loaders de almacenamiento remoto (S3, Cloudflare R2, MinIO)
+│   │   └── s3.ts
+│   ├── styles/           # Hojas de estilo globales
+│   │   └── main.css
+│   └── public/           # Archivos estáticos copiados directamente a dist/
+│       └── favicon.ico
+├── docs/                 # Documentación adicional del proyecto (opcional)
+├── scripts/              # Scripts auxiliares del proyecto (opcional)
+├── dist/                 # Directorio de salida compilado
+└── bustatic.config.ts    # Configuración del sitio, SEO y feeds
 ```
+
+> [!TIP]
+> Bustatic soporta referencias a rutas absolutas como `/styles/main.css` o `/components/card.html` resolviéndolas automáticamente en la raíz o en `src/`, manteniendo el código limpio y portable.
 
 ---
 
@@ -70,20 +85,24 @@ Inicia el servidor local en `http://localhost:3000`:
 ```bash
 bustatic dev
 ```
-Cualquier cambio en tus páginas, layouts, componentes, CSS o JSON recargará instantáneamente la pestaña del navegador a través de WebSockets nativos.
+Cualquier cambio en tus páginas, layouts, componentes, CSS o datos recargará instantáneamente la pestaña del navegador a través de WebSockets nativos.
 
 ### Construir para Producción
-Empaqueta y minifica todo el sitio en la carpeta `dist/`:
+Empaqueta, minifica y optimiza imágenes y metadatos en la carpeta `dist/`:
 ```bash
 bustatic build
 ```
-Bun procesará automáticamente los archivos HTML, extraerá y empaquetará los módulos TypeScript/JavaScript y hojas de estilo CSS en chunks minificados y con hash de caché.
+
+### Limpiar Caché y Compilación
+```bash
+bustatic clean
+```
 
 ---
 
-## Configuración Opcional (`bustatic.config.ts`)
+## Configuración (`bustatic.config.ts`)
 
-Puedes personalizar el comportamiento de Bustatic creando un archivo `bustatic.config.ts`:
+Personaliza el comportamiento de Bustatic, las URLs canónicas, el sitemap y los feeds RSS:
 
 ```ts
 import { defineConfig } from "bustatic";
@@ -91,7 +110,41 @@ import { defineConfig } from "bustatic";
 export default defineConfig({
   port: 3000,
   minify: true,
-  // Estrategia de CSS: "inline" (por defecto para cero FOUC) o "external"
-  cssStrategy: "inline",
+  site: {
+    url: "https://misitio.com",
+    title: "Mi Proyecto",
+    description: "Sitio web generado con Bustatic",
+  },
+  seo: {
+    sitemap: true,
+    robots: true,
+  },
+  feeds: {
+    rss: true,
+    atom: true,
+  }
 });
 ```
+
+---
+
+## 📚 Índice de Guías Especializadas
+
+### 🎨 Fundación y Diseño
+- 📑 [Guía de Plantillas y Componentes](./templating.md)
+- 🎨 [Estilos Scoped y Grafo de Dependencias CSS](./scoped-css.md)
+- 🧩 [Web Components Nativos y Declarative Shadow DOM](./web-components.md)
+
+### 📊 Enrutamiento y Datos
+- 🗺️ [Enrutamiento Basado en Archivos y Páginas Dinámicas](./routing-and-pages.md)
+- 📊 [Datos, Loaders y Variables de Entorno](./data-and-loaders.md)
+- 🗄️ [Motores SQL Nativos (`bun:sqlite` y `Bun.sql`)](./databases-sql.md)
+- 📑 [Sistema de Paginación Automática](./pagination.md)
+
+### 🖼️ Assets, Cloud y SEO
+- 🖼️ [Optimización de Imágenes con `<photo>`](./assets-and-images.md)
+- 🗄️ [Storage Loaders Remotos (S3, R2, MinIO)](./storage-loaders.md)
+- 🔍 [Suite SEO, Metadatos Sociales y Feeds](./seo.md)
+
+### ⌨️ Herramientas
+- ⌨️ [Referencia del CLI](./cli.md)

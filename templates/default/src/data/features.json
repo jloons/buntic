@@ -1,0 +1,14 @@
+[
+  {
+    "title": "100% Nativo de Bun",
+    "description": "Aprovecha al máximo el runtime y el compilador de Bun para builds instantáneos."
+  },
+  {
+    "title": "Cero Dependencias",
+    "description": "Sin paquetes npm pesados ni carpetas node_modules de cientos de megabytes."
+  },
+  {
+    "title": "Estilos Scoped",
+    "description": "CSS encapsulado por componente con selector & y deduplicación automática."
+  }
+]

@@ -1,6 +1,6 @@
 {
   "name": "bustatic",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Zero-dependency, blazing-fast static site generator native to Bun",
   "type": "module",
   "main": "./src/index.ts",
@@ -16,8 +16,8 @@
   ],
   "scripts": {
     "test": "bun test",
-    "dev": "bun ./bin/bustatic.ts dev example --port 3333",
-    "build": "bun ./bin/bustatic.ts build example"
+    "dev": "bun ./bin/bustatic.ts dev examples/simple --port 3333",
+    "build": "bun ./bin/bustatic.ts build examples/simple"
   },
   "keywords": [
     "bun",

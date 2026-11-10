@@ -10,6 +10,7 @@ import {
 } from "./scoped-css.ts";
 import { scriptImportsCssFile, findTriadForScript, filenameToTagName, RESERVED_W3C_TAGS } from "./web-components.ts";
 import { CssDependencyGraph } from "./css-graph.ts";
+import { loadPublicEnv, isReservedNamespace } from "../env.ts";
 
 /**
  * Checks whether an HTML string already contains a <script> tag pointing to srcPath.
@@ -44,13 +45,17 @@ export class TemplateEngine {
   }
 
   /**
-   * Loads all JSON files in the data directory into a key-value map.
-   * e.g. data/site.json -> { site: { ... } }
+   * Loads all JSON and TS/JS data files in the data directory into an in-memory key-value map,
+   * along with public environment variables under the "env" namespace.
+   * e.g. data/site.json -> { site: { ... } }, data/articles.ts -> { articles: [ ... ] }
    */
   public async loadData(): Promise<Record<string, any>> {
     if (this.cachedData) return this.cachedData;
 
     const data: Record<string, any> = {};
+    const publicEnv = loadPublicEnv(this.config.root);
+    data["env"] = publicEnv;
+
     if (!existsSync(this.config.dataDir)) {
       this.cachedData = data;
       return data;
@@ -59,18 +64,65 @@ export class TemplateEngine {
     try {
       const entries = readdirSync(this.config.dataDir);
       for (const entry of entries) {
+        if (entry.startsWith(".")) continue;
+
+        let key = "";
+        let isModule = false;
+        let isJson = false;
+
         if (entry.endsWith(".json")) {
-          const key = entry.replace(/\.json$/, "");
-          const fullPath = join(this.config.dataDir, entry);
+          key = entry.replace(/\.json$/, "");
+          isJson = true;
+        } else if (
+          (entry.endsWith(".ts") || entry.endsWith(".js") || entry.endsWith(".mjs")) &&
+          !entry.endsWith(".d.ts")
+        ) {
+          key = entry.replace(/\.(ts|js|mjs)$/, "");
+          isModule = true;
+        }
+
+        if (!key) continue;
+
+        if (isReservedNamespace(key)) {
+          console.warn(
+            `\x1b[33m⚠ [Bustatic Warning]\x1b[0m File "${entry}" in data/ conflicts with reserved namespace "${key}". File skipped.`
+          );
+          continue;
+        }
+
+        const fullPath = join(this.config.dataDir, entry);
+
+        if (isJson) {
           try {
             data[key] = await this.vfs.readJson(fullPath);
           } catch {
             data[key] = await Bun.file(fullPath).json();
           }
+        } else if (isModule) {
+          try {
+            const mod = await import(fullPath);
+            const loader = mod.default ?? mod.load ?? mod.getData;
+            if (typeof loader === "function") {
+              data[key] = await loader({ env: publicEnv });
+            } else if (loader !== undefined) {
+              data[key] = loader;
+            } else {
+              data[key] = mod;
+            }
+          } catch (err: any) {
+            console.error(
+              `\x1b[31m[Bustatic Error]\x1b[0m Failed to execute global data loader "${entry}":`,
+              err?.message || err
+            );
+            throw err;
+          }
         }
       }
-    } catch {
-      // Ignored if data directory is empty or cannot be read
+    } catch (err: any) {
+      if (err && err.message?.includes("[Bustatic Error]")) {
+        throw err;
+      }
+      // Ignored if data directory cannot be read
     }
 
     this.cachedData = data;
@@ -103,9 +155,23 @@ export class TemplateEngine {
    * 6. Auto-inject Web Component scripts
    * 7. Resolving Scoped CSS and stylesheets according to cssStrategy
    */
-  public async renderPage(pageHtml: string, currentFile = ""): Promise<string> {
+  public async renderPage(
+    pageHtml: string,
+    currentFile = "",
+    pageContext?: { params?: Record<string, string>; props?: Record<string, any> } | Record<string, any>
+  ): Promise<string> {
     const data = await this.loadData();
     const context: Record<string, any> = { ...data };
+
+    if (pageContext) {
+      if (pageContext.params !== undefined) context.params = pageContext.params;
+      if (pageContext.props !== undefined) context.props = pageContext.props;
+      for (const [k, v] of Object.entries(pageContext)) {
+        if (k !== "params" && k !== "props" && k !== "env") {
+          context[k] = v;
+        }
+      }
+    }
 
     // Analyze CSS dependency graph for global root and components
     await this.cssGraph.analyze(this.vfs);
@@ -211,7 +277,15 @@ export class TemplateEngine {
 
         let cssFilePath = "";
         if (href.startsWith("/")) {
-          cssFilePath = join(this.config.root, href.slice(1));
+          const direct = join(this.config.root, href.slice(1));
+          const inSrc = join(this.config.root, "src", href.slice(1));
+          if (this.vfs.hasFile(direct) || existsSync(direct)) {
+            cssFilePath = direct;
+          } else if (this.vfs.hasFile(inSrc) || existsSync(inSrc)) {
+            cssFilePath = inSrc;
+          } else {
+            cssFilePath = direct;
+          }
         } else {
           const fromDir = currentFile ? dirname(currentFile) : this.config.pagesDir;
           cssFilePath = resolve(fromDir, href);
@@ -261,7 +335,10 @@ export class TemplateEngine {
       // Auto-inject global stylesheet link if not already present
       if (globalRoot.relativeRoot) {
         const globalPublicHref = `/${globalRoot.relativeRoot.replace(/\\/g, "/")}`;
-        if (!result.includes(globalPublicHref)) {
+        const withoutSrc = globalPublicHref.startsWith("/src/")
+          ? globalPublicHref.slice(4)
+          : globalPublicHref;
+        if (!result.includes(globalPublicHref) && !result.includes(withoutSrc)) {
           const globalLink = `<link rel="stylesheet" href="${globalPublicHref}">`;
           if (result.includes("</head>")) {
             result = result.replace("</head>", `  ${globalLink}\n</head>`);

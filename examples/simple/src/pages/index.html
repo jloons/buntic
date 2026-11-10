@@ -1,0 +1,17 @@
+<layout src="../layouts/main.html">
+  <span slot="title">Inicio | {{ site.title }}</span>
+
+  <section class="hero">
+    <h1>{{ site.title }}</h1>
+    <p>{{ site.description }}</p>
+  </section>
+
+  <section>
+    <h2>Características Principales</h2>
+    <div class="grid">
+      <each src="../data/features.json">
+        <component src="../components/card.html" />
+      </each>
+    </div>
+  </section>
+</layout>
