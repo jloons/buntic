@@ -14,7 +14,7 @@ examples/simple/
 │   ├── components/    # header, footer, card (HTML + CSS scoped)
 │   ├── data/          # site.json, features.json
 │   ├── styles/        # main.css
-│   └── public/        # robots.txt
+│   └── public/        # robots.txt, bustatic-icon.svg
 ├── bustatic.config.ts
 └── package.json
 ```

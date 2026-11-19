@@ -2,8 +2,30 @@
   <span slot="title">Inicio | {{ site.title }}</span>
 
   <section class="hero">
+    <img src="/bustatic-icon.svg" alt="Bustatic Logo" class="hero-icon" width="80" height="80">
     <h1>{{ site.title }}</h1>
     <p>{{ site.description }}</p>
+    <style scoped>
+        & { 
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        .hero-icon {
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        p {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto 2rem; 
+        }
+    </style>
   </section>
 
   <section>

@@ -43,9 +43,11 @@ describe("Builder", () => {
     expect(contactHtml).toContain("Contacto");
     expect(contactHtml).toContain("contacto@example.com");
 
-    // Verify robots.txt from public/ copied to dist/
+    // Verify robots.txt and bustatic-icon.svg from public/ copied to dist/
     const robotsPath = join(outDir, "robots.txt");
     expect(existsSync(robotsPath)).toBe(true);
+    const iconPath = join(outDir, "bustatic-icon.svg");
+    expect(existsSync(iconPath)).toBe(true);
 
     // In default inline mode, scoped CSS is inlined directly into HTML
     expect(indexHtml).toContain("<style");

@@ -3,12 +3,14 @@ import { existsSync, watch } from "node:fs";
 import type { Server, ServerWebSocket } from "bun";
 import type { ResolvedConfig } from "../types.ts";
 import { TemplateEngine } from "../template/engine.ts";
+import { isIgnoredPath } from "../template/vfs.ts";
 import { resolveAllRoutes } from "../router/routes.ts";
 import { PhotoProcessor } from "../assets/photo-tag.ts";
 import { SeoMetadataEngine } from "../seo/metadata.ts";
 import { generateSitemapXml } from "../seo/sitemap.ts";
 import { generateRobotsTxt } from "../seo/robots.ts";
 import { generateRss2Xml, generateAtomXml } from "../seo/feeds.ts";
+import { detectPublicCollisions } from "../builder/builder.ts";
 
 const LIVE_RELOAD_SCRIPT = `
 <script id="__bustatic_live_reload">
@@ -44,25 +46,47 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
   );
   const activeSockets = new Set<ServerWebSocket<any>>();
 
-  // Debounced file watcher
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  const watcher = watch(config.root, { recursive: true }, (eventType, filename) => {
-    if (!filename) return;
-
-    // Ignore changes in node_modules, .git, dist, or .bustatic
-    if (
-      filename.includes("node_modules") ||
-      filename.includes(".git") ||
-      filename.includes("dist") ||
-      filename.includes(".bustatic")
-    ) {
-      return;
+  // Proactively warn about any public/ file collisions on dev server startup
+  (async () => {
+    try {
+      const globalData = await engine.loadData();
+      const routes = await resolveAllRoutes(config, globalData);
+      const collisions = detectPublicCollisions(config, routes);
+      for (const c of collisions) {
+        if (c.type === "route") {
+          console.warn(
+            `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Public file "${c.publicPath}" conflicts with page template "${c.conflictWith}" (both resolve to "${c.outputPath}").`
+          );
+        } else {
+          console.warn(
+            `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Public file "${c.publicPath}" conflicts with reserved internal path "${c.conflictWith}".`
+          );
+        }
+      }
+    } catch {
+      // Ignore initial scanning errors in dev server
     }
+  })();
+
+  // Debounced file watcher accumulating all changed paths in the batch
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const pendingChangedPaths = new Set<string>();
+
+  const watcher = watch(config.root, { recursive: true }, (_eventType, filename) => {
+    if (!filename) return;
+    if (isIgnoredPath(filename)) return;
 
     const changedPath = resolve(config.root, filename);
+    pendingChangedPaths.add(changedPath);
+
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      engine.invalidateCache(changedPath);
+      for (const p of pendingChangedPaths) {
+        engine.invalidateCache(p);
+      }
+      pendingChangedPaths.clear();
+      engine.vfs.clearContentCache();
+
       for (const socket of activeSockets) {
         socket.send("reload");
       }
@@ -187,7 +211,10 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
             }
 
             return new Response(rendered, {
-              headers: { "Content-Type": "text/html; charset=utf-8" },
+              headers: {
+                "Content-Type": "text/html; charset=utf-8",
+                "Cache-Control": "no-store, no-cache, must-revalidate",
+              },
             });
           } catch (err: any) {
             return new Response(
@@ -233,7 +260,10 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
           }
 
           return new Response(rendered, {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+            },
           });
         }
       } catch (err: any) {
@@ -250,7 +280,10 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       if (engine.generatedPageStyles.has(pathname)) {
         const css = engine.generatedPageStyles.get(pathname)!;
         return new Response(css, {
-          headers: { "Content-Type": "text/css; charset=utf-8" },
+          headers: {
+            "Content-Type": "text/css; charset=utf-8",
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
         });
       }
 
@@ -345,13 +378,19 @@ async function serveFileWithTranspiler(filePath: string): Promise<Response> {
     const code = await file.text();
     const transpiled = transpiler.transformSync(code);
     return new Response(transpiled, {
-      headers: { "Content-Type": "application/javascript; charset=utf-8" },
+      headers: {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
     });
   }
 
   const contentType = getMimeType(filePath);
   return new Response(file, {
-    headers: { "Content-Type": contentType },
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    },
   });
 }
 

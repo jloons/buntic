@@ -2,6 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { resolveConfig } from "../src/config.ts";
 import { startDevServer } from "../src/server/dev.ts";
 import { join } from "node:path";
+import { mkdirSync, rmSync, writeFileSync, renameSync, unlinkSync, existsSync } from "node:fs";
 
 describe("DevServer", () => {
   test("serves pages with live-reload and static assets from src layout", async () => {
@@ -66,6 +67,60 @@ describe("DevServer", () => {
       expect(tsCode).toContain("count = 0");
     } finally {
       dev.stop();
+    }
+  });
+
+  test("invalidates sibling CSS cache and reloads properly on Vim-style save (with 4913, backup~ and .swp files)", async () => {
+    const tmpDir = join(import.meta.dir, ".tmp-test-dev-vim-reload");
+    if (existsSync(tmpDir)) {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+    mkdirSync(join(tmpDir, "src/pages"), { recursive: true });
+    mkdirSync(join(tmpDir, "src/components"), { recursive: true });
+
+    await Bun.write(
+      join(tmpDir, "src/pages/index.html"),
+      `<!doctype html><html><head><title>Test</title></head><body><component src="../components/box.html" /></body></html>`
+    );
+    await Bun.write(join(tmpDir, "src/components/box.html"), `<div class="box">Hello</div>`);
+    const boxCssPath = join(tmpDir, "src/components/box.css");
+    await Bun.write(boxCssPath, `& { background-color: #112233; }`);
+
+    const config = await resolveConfig(tmpDir, { port: 38897 });
+    const dev = startDevServer(config);
+
+    try {
+      // 1. Initial load populates VFS contentCache
+      const res1 = await fetch(`http://localhost:${dev.port}/`);
+      const html1 = await res1.text();
+      expect(html1).toContain("#112233");
+
+      // 2. Simulate Vim saving box.css:
+      //    - creates/deletes 4913 probe file
+      //    - renames box.css -> box.css~
+      //    - writes new box.css
+      //    - deletes box.css~ and updates .box.css.swp last
+      const compDir = join(tmpDir, "src/components");
+      writeFileSync(join(compDir, "4913"), "");
+      unlinkSync(join(compDir, "4913"));
+      renameSync(boxCssPath, `${boxCssPath}~`);
+      writeFileSync(boxCssPath, `& { background-color: #abcdef; }`);
+      unlinkSync(`${boxCssPath}~`);
+      writeFileSync(join(compDir, ".box.css.swp"), "swapcontent");
+
+      // Wait for debounce (60ms) to settle
+      await Bun.sleep(150);
+
+      // 3. Subsequent page request must reflect the updated sibling CSS
+      const res2 = await fetch(`http://localhost:${dev.port}/`);
+      const html2 = await res2.text();
+      expect(html2).toContain("#abcdef");
+      expect(html2).not.toContain("#112233");
+    } finally {
+      dev.stop();
+      if (existsSync(tmpDir)) {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
     }
   });
 });

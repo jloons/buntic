@@ -47,13 +47,14 @@ export class CssDependencyGraph {
 
     const allFiles = vfs.getAllFiles();
     const publicDir = join(this.rootDir, "public");
+    const srcPublicDir = join(this.rootDir, "src", "public");
 
     // 1. Collect all project .css files, excluding public/ and external/build dirs
     const cssFiles: string[] = [];
     for (const file of allFiles) {
       if (!file.endsWith(".css")) continue;
       // Exclude public/ directory (static assets served verbatim)
-      if (file.startsWith(publicDir)) continue;
+      if (file.startsWith(publicDir) || file.startsWith(srcPublicDir)) continue;
       cssFiles.push(file);
     }
 

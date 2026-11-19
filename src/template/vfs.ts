@@ -2,6 +2,58 @@ import { join, resolve, dirname } from "node:path";
 import { readdirSync, statSync, existsSync, readFileSync } from "node:fs";
 import { WebComponentRegistry } from "./web-components.ts";
 
+/**
+ * Checks whether a path or filename should be ignored by VFS and the dev file watcher.
+ * Filters out build/system folders and editor temporary/swap/backup files (Vim, Neovim, Emacs, JetBrains, macOS).
+ */
+export function isIgnoredPath(filePathOrName: string): boolean {
+  const normalized = filePathOrName.replace(/\\/g, "/");
+  const segments = normalized.split("/");
+
+  for (const seg of segments) {
+    if (
+      seg === "node_modules" ||
+      seg === ".git" ||
+      seg === "dist" ||
+      seg.startsWith(".bustatic")
+    ) {
+      return true;
+    }
+  }
+
+  const base = segments[segments.length - 1] || "";
+  if (!base) return false;
+
+  // Vim / Emacs / Nano backup & undo files (e.g. header.css~, .header.css.un~)
+  if (base.endsWith("~")) return true;
+
+  // Vim swap files (e.g. .header.css.swp, .header.css.swo, .header.css.swx)
+  if (/^\..*\.sw[a-z]+$/i.test(base) || /\.(swp|swo|swn|swx|swpx)$/i.test(base)) {
+    return true;
+  }
+
+  // Vim write-check probe files (4913, 5036, 5159, 5282)
+  if (/^(4913|5036|5159|5282)$/.test(base)) return true;
+
+  // Emacs lock and auto-save files (e.g. .#header.css, #header.css#)
+  if (base.startsWith(".#") || (base.startsWith("#") && base.endsWith("#"))) {
+    return true;
+  }
+
+  // Common atomic write / IDE temporary files and OS metadata
+  if (
+    base.endsWith(".tmp") ||
+    base.endsWith(".__jb_tmp__") ||
+    base.endsWith(".__jb_old__") ||
+    base === ".DS_Store" ||
+    base === "Thumbs.db"
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export class VirtualFileSystem {
   public root: string;
   public registry: WebComponentRegistry = new WebComponentRegistry();
@@ -26,12 +78,7 @@ export class VirtualFileSystem {
     try {
       const entries = readdirSync(dir);
       for (const entry of entries) {
-        if (
-          entry === "node_modules" ||
-          entry === ".git" ||
-          entry === "dist" ||
-          entry.startsWith(".bustatic")
-        ) {
+        if (isIgnoredPath(entry)) {
           continue;
         }
 
@@ -191,24 +238,55 @@ export class VirtualFileSystem {
     this.jsonCache.delete(absPath);
     this.pathCache.clear();
 
+    // If a backup file (e.g. file.css~) was referenced, also invalidate the target file
+    if (absPath.endsWith("~")) {
+      const targetPath = absPath.slice(0, -1);
+      this.contentCache.delete(targetPath);
+      this.jsonCache.delete(targetPath);
+    }
+
+    if (isIgnoredPath(absPath)) {
+      return;
+    }
+
     const isScript = /\.(ts|js|tsx|jsx)$/.test(absPath);
     if (isScript) {
       this.registry.unregisterFile(absPath);
     }
 
     if (existsSync(absPath)) {
-      this.knownFiles.add(absPath);
-      if (isScript) {
-        try {
-          const content = readFileSync(absPath, "utf-8");
-          this.registry.registerFile(absPath, content);
-        } catch {
-          this.registry.registerFile(absPath);
+      try {
+        const stat = statSync(absPath);
+        if (stat.isDirectory()) {
+          this.knownDirs.add(absPath);
+          this.scan(absPath);
+        } else if (stat.isFile()) {
+          this.knownFiles.add(absPath);
+          if (isScript) {
+            try {
+              const content = readFileSync(absPath, "utf-8");
+              this.registry.registerFile(absPath, content);
+            } catch {
+              this.registry.registerFile(absPath);
+            }
+          }
         }
+      } catch {
+        // Ignore transient stat error during atomic save
       }
     } else {
       this.knownFiles.delete(absPath);
+      this.knownDirs.delete(absPath);
     }
+  }
+
+  /**
+   * Clears in-memory content, JSON, and path resolution caches without losing indexed files.
+   */
+  public clearContentCache(): void {
+    this.contentCache.clear();
+    this.jsonCache.clear();
+    this.pathCache.clear();
   }
 
   /**

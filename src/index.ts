@@ -38,7 +38,14 @@ export { generateSitemapXml } from "./seo/sitemap.ts";
 export { generateRobotsTxt } from "./seo/robots.ts";
 export { generateRss2Xml, generateAtomXml, extractFeedEntries } from "./seo/feeds.ts";
 
-export { Builder, type BuildResult, type BuildOptions } from "./builder/builder.ts";
+export {
+  Builder,
+  detectPublicCollisions,
+  assertNoPublicCollisions,
+  type BuildResult,
+  type BuildOptions,
+  type PublicCollision,
+} from "./builder/builder.ts";
 export { startDevServer, type DevServerInstance } from "./server/dev.ts";
 export { runCLI } from "./cli.ts";
 

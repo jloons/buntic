@@ -20,6 +20,102 @@ export interface BuildOptions {
   cleanCache?: boolean;
 }
 
+export interface PublicCollision {
+  type: "route" | "reserved-dir";
+  publicPath: string;
+  conflictWith: string;
+  outputPath: string;
+}
+
+export function getDirectoryFiles(dir: string, baseDir = dir): string[] {
+  if (!existsSync(dir)) return [];
+  const results: string[] = [];
+  const entries = readdirSync(dir);
+  for (const entry of entries) {
+    const full = join(dir, entry);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      results.push(...getDirectoryFiles(full, baseDir));
+    } else {
+      results.push(relative(baseDir, full).replace(/\\/g, "/"));
+    }
+  }
+  return results;
+}
+
+export function detectPublicCollisions(
+  config: ResolvedConfig,
+  routes: PageRouteInfo[]
+): PublicCollision[] {
+  if (!existsSync(config.publicDir)) {
+    return [];
+  }
+
+  const publicFiles = getDirectoryFiles(config.publicDir);
+  const collisions: PublicCollision[] = [];
+
+  const routeOutputMap = new Map<string, PageRouteInfo>();
+  for (const route of routes) {
+    const relOut = relative(config.outDir, route.outputFilePath).replace(/\\/g, "/");
+    routeOutputMap.set(relOut, route);
+  }
+
+  for (const relFile of publicFiles) {
+    // 1. Collision with generated route page (HTML)
+    if (routeOutputMap.has(relFile)) {
+      const route = routeOutputMap.get(relFile)!;
+      collisions.push({
+        type: "route",
+        publicPath: relative(config.root, join(config.publicDir, relFile)),
+        conflictWith: relative(config.root, route.templateFilePath),
+        outputPath: relFile,
+      });
+    }
+
+    // 2. Collision with internal reserved pipeline directories
+    if (relFile.startsWith("assets/images/") || relFile === "assets/images") {
+      collisions.push({
+        type: "reserved-dir",
+        publicPath: relative(config.root, join(config.publicDir, relFile)),
+        conflictWith: "assets/images/ (Reserved for Bustatic <photo> image optimization)",
+        outputPath: relFile,
+      });
+    } else if (relFile.startsWith("assets/seo/") || relFile === "assets/seo") {
+      collisions.push({
+        type: "reserved-dir",
+        publicPath: relative(config.root, join(config.publicDir, relFile)),
+        conflictWith: "assets/seo/ (Reserved for Bustatic <seo> social cards)",
+        outputPath: relFile,
+      });
+    }
+  }
+
+  return collisions;
+}
+
+export function assertNoPublicCollisions(
+  config: ResolvedConfig,
+  routes: PageRouteInfo[]
+): void {
+  const collisions = detectPublicCollisions(config, routes);
+  if (collisions.length === 0) return;
+
+  const details = collisions
+    .map((c) => {
+      if (c.type === "route") {
+        return `  - Public file "${c.publicPath}" conflicts with page template "${c.conflictWith}" (both output to "${c.outputPath}").`;
+      }
+      return `  - Public file "${c.publicPath}" conflicts with reserved internal path "${c.conflictWith}".`;
+    })
+    .join("\n");
+
+  throw new Error(
+    `[Bustatic Collision Error]: Conflict detected between public/ files and build output:\n` +
+      details +
+      `\n\n👉 Action: Remove or rename conflicting files in "public/" or adjust page routes in "pages/".`
+  );
+}
+
 export class Builder {
   private config: ResolvedConfig;
   private engine: TemplateEngine;
@@ -59,6 +155,9 @@ export class Builder {
       console.warn(`[Bustatic] No HTML pages found in: ${this.config.pagesDir}`);
       return { success: true, pagesCount: 0, outputFiles: [], durationMs: 0 };
     }
+
+    // Verify no collisions between public/ files and generated pages or reserved paths
+    assertNoPublicCollisions(this.config, routes);
 
     // Clean or prepare outDir
     if (existsSync(this.config.outDir)) {
@@ -117,6 +216,7 @@ export class Builder {
           asset: "[name]-[hash].[ext]",
           entry: "[dir]/[name].[ext]",
         },
+        external: ["/*"],
       });
 
       if (!buildResult.success) {

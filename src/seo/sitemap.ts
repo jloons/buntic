@@ -1,3 +1,5 @@
+import { join } from "node:path";
+import { existsSync } from "node:fs";
 import type { PageRouteInfo, ResolvedConfig } from "../types.ts";
 
 export function generateSitemapXml(
@@ -5,6 +7,12 @@ export function generateSitemapXml(
   config: ResolvedConfig
 ): string | null {
   if (config.seo?.sitemap === false) {
+    return null;
+  }
+
+  // If user already has a sitemap.xml in public/, respect it
+  const existingInPublic = join(config.publicDir, "sitemap.xml");
+  if (existsSync(existingInPublic)) {
     return null;
   }
 

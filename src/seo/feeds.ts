@@ -1,3 +1,5 @@
+import { join } from "node:path";
+import { existsSync } from "node:fs";
 import type { PageRouteInfo, ResolvedConfig, FeedItem } from "../types.ts";
 
 export interface ResolvedFeedEntry {
@@ -54,6 +56,14 @@ export function generateRss2Xml(
     return null;
   }
 
+  // If user already has an RSS file in public/, respect it
+  const rssFilename =
+    typeof config.feeds?.rss === "string" ? config.feeds.rss : "rss.xml";
+  const existingInPublic = join(config.publicDir, rssFilename);
+  if (existsSync(existingInPublic)) {
+    return null;
+  }
+
   const entries = extractFeedEntries(routes, config);
   if (entries.length === 0 && !config.feeds?.rss) {
     return null; // Don't generate empty feed unless explicitly configured
@@ -95,6 +105,14 @@ export function generateAtomXml(
   config: ResolvedConfig
 ): string | null {
   if (config.feeds?.atom === false) {
+    return null;
+  }
+
+  // If user already has an Atom feed file in public/, respect it
+  const atomFilename =
+    typeof config.feeds?.atom === "string" ? config.feeds.atom : "atom.xml";
+  const existingInPublic = join(config.publicDir, atomFilename);
+  if (existsSync(existingInPublic)) {
     return null;
   }
 

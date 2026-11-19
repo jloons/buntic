@@ -1,6 +1,9 @@
 <header class="site-header">
   <div class="header-inner">
-    <a href="/" class="logo">⚡ {{ site.title }}</a>
+    <a href="/" class="logo">
+      <img src="/bustatic-icon.svg" alt="Bustatic" class="logo-icon" width="28" height="28">
+      <span>{{ site.title }}</span>
+    </a>
     <nav class="nav">
       <each in="site.navLinks" as="item">
         <a href="{{ item.url }}">{{ item.label }}</a>
