@@ -1,0 +1,25 @@
+<article class="card">
+  <div class="card-media">
+    <a href="/products/{{slug}}">
+      <photo key="{{imageKey}}" widths="280,560" sizes="(min-width: 640px) 280px, 100vw" alt="{{alt}}" loading="lazy" />
+    </a>
+    <if is="archiveImageKey">
+      <div class="card-badge-pos">
+        <tag-badge><span slot="label">Multi-Tag</span></tag-badge>
+      </div>
+    </if>
+  </div>
+  <div class="card-content">
+    <div class="card-meta">
+      <span class="card-category">{{category}}</span>
+      <span class="card-price">${{price}} {{currency}}</span>
+    </div>
+    <h3 class="card-title">
+      <a href="/products/{{slug}}">{{name}}</a>
+    </h3>
+    <p class="card-summary">{{summary}}</p>
+    <div class="card-actions">
+      <a href="/products/{{slug}}" class="btn-detail">Ver Detalle &rarr;</a>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,29 @@
+<div class="viewer-card" id="card" data-mode="split">
+  <div class="viewer-header">
+    <div class="viewer-title">
+      <span>Historial de Versiones OCI</span>
+      <tag-badge><span slot="label">Multi-Tag</span></tag-badge>
+    </div>
+    <div class="viewer-controls" id="controls">
+      <button class="mode-btn active" data-mode="split">Comparación</button>
+      <button class="mode-btn" data-mode="latest">Actual</button>
+      <button class="mode-btn" data-mode="archive">Clásica</button>
+    </div>
+  </div>
+  <div class="viewer-panels">
+    <div class="panel panel-latest">
+      <div class="panel-header">
+        <span class="panel-label">Versión Actual</span>
+        <tag-badge><span slot="label">:latest</span></tag-badge>
+      </div>
+      <slot name="latest"></slot>
+    </div>
+    <div class="panel panel-archive">
+      <div class="panel-header">
+        <span class="panel-label">Edición de Archivo</span>
+        <tag-badge><span slot="label">:2020</span></tag-badge>
+      </div>
+      <slot name="archive"></slot>
+    </div>
+  </div>
+</div>

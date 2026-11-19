@@ -1,0 +1,57 @@
+<layout src="../layouts/main.html">
+  <span slot="title">Inicio | Bustatic Catalog</span>
+
+  <section class="hero-banner">
+    <div class="hero-badge">
+      <tag-badge><span slot="label">OCI + Podman Demo</span></tag-badge>
+    </div>
+    <h1 class="page-title">Catálogo de Alto Rendimiento</h1>
+    <p class="page-subtitle">
+      Demostración de generación estática con Bustatic consumiendo servicios externos reales:
+      PostgreSQL, Redis, OCI Registry y S3.
+    </p>
+  </section>
+
+  <section>
+    <div class="section-header">
+      <h2 class="section-title">Productos Destacados</h2>
+      <a href="/catalog" class="view-all-link">Ver catálogo completo &rarr;</a>
+    </div>
+
+    <div class="product-grid">
+      <each in="props.featured">
+        <component src="../components/product-card.html" />
+      </each>
+    </div>
+  </section>
+
+  <style scoped>
+    & {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .hero-banner {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .hero-badge {
+      display: flex;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .view-all-link {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+  </style>
+</layout>

@@ -1,0 +1,14 @@
+{
+  "name": "bustatic-example-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun ../../bin/bustatic.ts build .",
+    "dev": "bun ../../bin/bustatic.ts dev . --port 3334",
+    "seed": "bun scripts/seed.ts",
+    "demo:oci": "bun scripts/demo.ts run --data postgres --storage oci",
+    "demo:s3": "bun scripts/demo.ts run --data redis --storage s3",
+    "demo:clean": "bun scripts/demo.ts down"
+  }
+}

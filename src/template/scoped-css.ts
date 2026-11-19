@@ -40,7 +40,7 @@ export interface RootElementInfo {
  */
 export function findSingleRootElement(html: string): RootElementInfo | null {
   const tagRegex =
-    /<!--[\s\S]*?-->|<\/([a-zA-Z0-9_-]+)\s*>|<([a-zA-Z0-9_-]+)((?:\s+[^"'<>]+|='[^']*'|="[^"]*"|=[^\s"'>]+)*)\s*(\/?)>/gi;
+    /<!--[\s\S]*?-->|<\/([a-zA-Z0-9_-]+)\s*>|<([a-zA-Z0-9_-]+)((?:\s+[^"'<>/]+|='[^']*'|="[^"]*"|=[^\s"'<>]+)*)\s*(\/?)>/gi;
 
   let match: RegExpExecArray | null;
   let firstRoot: RootElementInfo | null = null;

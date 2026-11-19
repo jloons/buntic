@@ -10,13 +10,13 @@ Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megaby
 
 ## ✨ Características Principales
 
-- ⚡ **100% Nativo de Bun:** Aprovecha al máximo `Bun.build`, `Bun.serve`, `Bun.Image`, `Bun.S3Client`, `bun:sqlite` y `Bun.sql`.
+- ⚡ **100% Nativo de Bun:** Aprovecha al máximo `Bun.build`, `Bun.serve`, `Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, y `Bun.redis`.
 - 📦 **Cero Dependencias Externas:** Cero paquetes de npm requeridos.
 - 🖼️ **Pipeline de Imágenes Nativo (`<photo>`):** Compresión automática a WebP a velocidad C++, cálculo de dimensiones anti-CLS y generación responsiva de `srcset` y `sizes`.
-- 🗄️ **Storage Loaders Remotos (`storage/`):** Integración nativa con Amazon S3, Cloudflare R2, MinIO y GCS con caché inmutable persistente por ETag en `.bustatic/cache/images`.
+- 🗄️ **Storage Loaders Remotos (`storage/`):** Integración nativa con **Amazon S3 / R2 / MinIO** y servidores **OCI Registry / Docker Registry** vía `OrasClient` y `createOrasStorage` con versionado por tags y caché inmutable persistente por ETag/Digest en `.bustatic/cache/images`.
 - 🔍 **Suite SEO Out-of-the-Box:** Componente `<seo>`, generación dinámica de `sitemap.xml`, `robots.txt` configurable y feeds RSS 2.0 y Atom 1.0.
-- 📱 **Tarjetas Sociales Automáticas:** Generación de tarjetas OpenGraph y Twitter Cards a tamaño estándar 1200x630 WebP a partir de imágenes locales o remotas en S3.
-- 🚀 **Enrutamiento Dinámico y SQL Nativo:** Parámetros en rutas (`pages/[slug].html`), loaders `.data.ts`, integración directa con SQLite y PostgreSQL, y paginación declarativa.
+- 📱 **Tarjetas Sociales Automáticas:** Generación de tarjetas OpenGraph y Twitter Cards a tamaño estándar 1200x630 WebP a partir de imágenes locales o remotas en S3/OCI.
+- 🚀 **Enrutamiento Dinámico, SQL y Redis:** Parámetros en rutas (`pages/[slug].html`), loaders `.data.ts`, integración directa con SQLite, PostgreSQL y Redis, y paginación declarativa.
 - 📑 **Plantillas Estándar:** Usa `<layout>`, `<slot>`, `<each>` y `<if>` directamente en HTML estándar.
 - 🎨 **Estilos Scoped Nativos:** Escribe `<style scoped>` dentro de cualquier elemento con sintaxis `&` o `:host`, deduplicación automática y cero FOUC.
 - 🔄 **Live-Reload Integrado:** Servidor de desarrollo con WebSockets nativos y recarga en caliente automática.
@@ -83,6 +83,8 @@ mi-sitio/
 - [Guía de Inicio Rápido](docs/getting-started.md)
 - [Referencia del CLI](docs/cli.md)
 - [Roadmap del Proyecto](ROADMAP.md)
+- [Ejemplo Simple (Plantillas y Web Components)](examples/simple/README.md)
+- [Ejemplo Catalog (OCI Registry, S3, Postgres, Redis y Podman)](examples/catalog/README.md)
 
 ### 🎨 Fundación y Plantillas (Fase 0)
 - [Guía de Plantillas y Componentes](docs/templating.md)

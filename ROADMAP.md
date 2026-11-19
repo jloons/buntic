@@ -36,9 +36,10 @@ Bustatic cuenta con un motor de compilación maduro, cobertura de pruebas comple
 - [x] **Integración Nativa con `bun:sqlite`:**
   - Soporte out-of-the-box para consultar bases de datos SQLite locales a velocidad C dentro de los loaders de datos globales y locales.
   - Pruebas unitarias integradas y portables en memoria.
-- [x] **Soporte para Drivers Relacionales Nativos (`Bun.sql`):**
+- [x] **Soporte para Drivers Relacionales Nativos (`Bun.sql`) y Clave-Valor (`Bun.redis`):**
   - Conexión directa con bases de datos remotas (PostgreSQL) mediante el driver nativo de Bun sin dependencias NPM de terceros.
-  - Suite de pruebas de integración con contenedores Podman.
+  - Conexión nativa de alto rendimiento con servidores Redis (`Bun.redis` / `Bun.RedisClient`) para recuperación de catálogos y datos estructurados.
+  - Suite de pruebas de integración y script demostrativo con contenedores Podman.
 - [x] **Paginación Automática:**
   - Utilidad declarativa `paginate()` inyectada en los loaders para segmentar colecciones masivas de registros en múltiples páginas (`/articulos`, `/articulos/2`).
   - Omisión canónica de `/1` para la primera página cumpliendo los estándares de SEO.
@@ -59,11 +60,14 @@ Esta fase dota a Bustatic de gestión profesional de medios multimedia, integrac
   - Detección automática de dimensiones físicas originales (`width` y `height`) para prevenir saltos de maquetación (anti-CLS).
   - Generación automática de `srcset` multi-resolución y atributo `sizes` cuando se especifican `widths="..."`, evitando sobreescalados más allá del tamaño original.
   - Carga diferida (`loading="lazy"`) y decodificación asíncrona (`decoding="async"`) por defecto.
-- [x] **Integración con Servidores de Objetos Remotos (Amazon S3, Cloudflare R2, MinIO, GCS):**
+- [x] **Integración con Servidores de Objetos Remotos (Amazon S3, Cloudflare R2, MinIO, GCS y OCI Registry):**
   - Carpeta dedicada `storage/` para interactuar con servidores de blobs y archivos binarios mediante `Bun.S3Client` nativo sin librerías externas de npm.
+  - **Soporte Nativo para OCI Registry y ORAS:** Cliente integrado de cero dependencias (`OrasClient` y helper `createOrasStorage`) para almacenar, versionar y recuperar archivos binarios directamente desde cualquier Docker Registry v2/v3 u OCI Distribution con soporte de autenticación automática Basic/Bearer.
+  - **Versionado por Tags OCI:** Mapeo directo de claves con tag (`product/1/portrait` &rarr; `:latest`, `product/1/portrait:2020` &rarr; `:2020`) con deduplicación y caché inmutable indexado por digest SHA-256 (`artifact.digest`).
   - Detección e inferencia automática del loader por defecto cuando existe un único archivo en `storage/`.
   - **Caché Persistente Inmutable por ETag:** Almacenamiento local en `.bustatic/cache/images/` indexado por hash SHA-256 `(namespace + key + etag + ancho + webp)`, evitando re-descargas y re-compresiones innecesarias en builds locales y CI/CD.
   - Opción `--clean-cache` en `bustatic build` / `dev` y comando `bustatic clean` para purgar `dist/` y el caché persistente.
+  - **Demostración Autocontenida con Podman (`examples/catalog`):** Orquestación automatizada de contenedores temporales (`bustatic-demo-*`) para PostgreSQL, Redis, OCI Registry y S3 con Web Components anidados y Declarative Shadow DOM.
 - [x] **Generadores SEO out-of-the-box:**
   - Generación automática de `sitemap.xml` dinámico incorporando todas las rutas estáticas y dinámicas resueltas por SQL, JSON o loaders.
   - Generación de `robots.txt` configurable, respetando archivos manuales en `public/robots.txt`.

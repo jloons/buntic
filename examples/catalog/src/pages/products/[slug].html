@@ -1,0 +1,197 @@
+<layout src="../../layouts/main.html">
+  <span slot="title">{{props.product.name}} | Bustatic Catalog</span>
+
+  <article class="product-detail">
+    <nav class="breadcrumb">
+      <a href="/catalog">&larr; Volver al Catálogo</a>
+    </nav>
+
+    <div class="product-layout">
+      <div class="product-gallery">
+        <div class="main-image-box">
+          <photo key="{{props.product.imageKey}}" widths="450,900" sizes="(min-width: 768px) 450px, 100vw" alt="{{props.product.alt}}" loading="eager" />
+        </div>
+      </div>
+
+      <div class="product-info">
+        <div class="info-badges">
+          <span class="category-badge">{{props.product.category}}</span>
+          <tag-badge><span slot="label">ID: {{props.product.id}}</span></tag-badge>
+        </div>
+
+        <h1 class="product-title">{{props.product.name}}</h1>
+        <p class="product-price">${{props.product.price}} {{props.product.currency}}</p>
+
+        <p class="product-lead">{{props.product.summary}}</p>
+        <div class="product-body">
+          <p>{{props.product.description}}</p>
+        </div>
+
+        <div class="product-meta-box">
+          <div class="meta-row">
+            <span class="meta-label">Disponibilidad:</span>
+            <if is="props.product.inStock">
+              <span class="stock-status in-stock">En Stock</span>
+            </if>
+            <if is="!props.product.inStock">
+              <span class="stock-status out-of-stock">Agotado</span>
+            </if>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Lanzamiento:</span>
+            <span>{{props.product.releasedAt}}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">OCI Key:</span>
+            <code>{{props.product.imageKey}}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <if is="props.product.archiveImageKey">
+      <section class="archive-section">
+        <h2 class="section-title">Control de Versiones de Imagen (OCI Tags)</h2>
+        <p class="archive-desc">
+          Este producto demuestra la capacidad de registrar múltiples versiones en el OCI Registry.
+          El Web Component interactivo <code>&lt;version-viewer&gt;</code> (que anida internamente <code>&lt;tag-badge&gt;</code>)
+          te permite alternar y comparar la imagen <code>:latest</code> con su versión de archivo <code>:2020</code>.
+        </p>
+
+        <version-viewer>
+          <photo slot="latest" key="{{props.product.imageKey}}" widths="380,760" alt="{{props.product.name}} versión actual" />
+          <photo slot="archive" key="{{props.product.archiveImageKey}}" widths="380,760" alt="{{props.product.name}} versión 2020" />
+        </version-viewer>
+      </section>
+    </if>
+  </article>
+
+  <style scoped>
+    & {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .breadcrumb {
+      margin-bottom: 0.5rem;
+    }
+    .breadcrumb a {
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+    .product-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+    .main-image-box {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .main-image-box img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      display: block;
+    }
+    .product-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .info-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .category-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-accent);
+    }
+    .product-title {
+      font-size: 2.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .product-price {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+    .product-lead {
+      font-size: 1.15rem;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+    }
+    .product-body {
+      line-height: 1.7;
+    }
+    .product-meta-box {
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .meta-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta-label {
+      font-weight: 600;
+      color: var(--color-text-muted);
+      width: 120px;
+    }
+    .meta-row code {
+      font-family: monospace;
+      font-size: 0.85rem;
+      background-color: var(--color-surface-alt);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--color-border);
+      color: var(--color-accent);
+    }
+    .stock-status {
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+    .stock-status.in-stock {
+      color: var(--color-success);
+      background-color: var(--color-success-bg);
+    }
+    .stock-status.out-of-stock {
+      color: var(--color-danger);
+      background-color: var(--color-danger-bg);
+    }
+    .archive-section {
+      margin-top: 2rem;
+      border-top: 1px solid var(--color-border);
+      padding-top: 2rem;
+    }
+    .archive-desc {
+      color: var(--color-text-muted);
+      margin-bottom: 1rem;
+      max-width: 800px;
+    }
+    @media (max-width: 768px) {
+      .product-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</layout>

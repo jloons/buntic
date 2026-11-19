@@ -1,0 +1,24 @@
+<layout src="../../layouts/main.html">
+  <span slot="title">Catálogo - Página {{props.page.currentPage}} de {{props.page.lastPage}}</span>
+
+  <header class="page-header">
+    <h1 class="page-title">Catálogo Completo</h1>
+    <p class="page-subtitle">Mostrando {{props.page.total}} productos paginados (3 por página).</p>
+  </header>
+
+  <div class="product-grid">
+    <each in="props.page.data">
+      <component src="../../components/product-card.html" />
+    </each>
+  </div>
+
+  <nav class="pagination-bar" aria-label="Paginación del catálogo">
+    <if is="props.page.url.prev">
+      <a href="{{props.page.url.prev}}" class="pagination-btn">&larr; Anterior</a>
+    </if>
+    <span class="pagination-info">Página {{props.page.currentPage}} de {{props.page.lastPage}}</span>
+    <if is="props.page.url.next">
+      <a href="{{props.page.url.next}}" class="pagination-btn">Siguiente &rarr;</a>
+    </if>
+  </nav>
+</layout>

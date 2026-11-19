@@ -98,6 +98,29 @@ export default async function() {
 
 ---
 
+## 🔴 3. Servidores Redis Nativos con `Bun.redis`
+
+Para recuperar datos estructurados o catálogos en memoria desde servidores Redis, Bustatic aprovecha el cliente nativo de Bun:
+
+### Ejemplo: Carga de Catálogo desde Redis
+
+```ts
+// data/products.ts
+import { RedisClient } from "bun";
+
+export default async function() {
+  const redis = new RedisClient(process.env.REDIS_URL || "redis://localhost:6379");
+  try {
+    const raw = await redis.get("catalog:products");
+    return raw ? JSON.parse(raw) : [];
+  } finally {
+    redis.close();
+  }
+}
+```
+
+---
+
 ## 🎯 Ventajas de Rendimiento
 
 1. **Cero Latencia en Producción:** Toda la interacción SQL ocurre **durante el comando `bustatic build`**. El sitio estático final generado en `dist/` se compone únicamente de archivos HTML, CSS y WebP pre-renderizados servidos instantáneamente desde un CDN o servidor HTTP.

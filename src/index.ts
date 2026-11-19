@@ -33,6 +33,28 @@ export { AssetCache } from "./assets/cache.ts";
 export { ImageProcessor } from "./assets/image-processor.ts";
 export { PhotoProcessor } from "./assets/photo-tag.ts";
 export { StorageManager } from "./storage/loader.ts";
+export {
+  OrasClient,
+  createOrasStorage,
+  parseOciReference,
+  formatOciReference,
+  AuthManager,
+  loadStoredCredentials,
+  parseWwwAuthenticate,
+  type OrasClientOptions,
+  type OrasStorageOptions,
+  type OCIReference,
+  type OCIManifest,
+  type OCIDescriptor,
+  type PushOptions,
+  type PushResult,
+  type PullOptions,
+  type PullResult,
+  type BlobStreamResult,
+  type AuthCredentials,
+  type BasicAuth,
+  type TokenAuth,
+} from "./storage/oras/index.ts";
 export { SeoMetadataEngine } from "./seo/metadata.ts";
 export { generateSitemapXml } from "./seo/sitemap.ts";
 export { generateRobotsTxt } from "./seo/robots.ts";

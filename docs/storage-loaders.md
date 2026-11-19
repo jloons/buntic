@@ -39,6 +39,32 @@ export default async function getAsset(key: string) {
 
 ---
 
+### Ejemplo: Loader OCI Registry / ORAS (`createOrasStorage`)
+
+Bustatic incluye soporte de primer nivel para servidores **Docker Registry v2/v3** y **OCI Distribution** (como `registry:latest`, `ghcr.io`, o `docker.io`) como alternativa ligera y versionada sin la complejidad ni la sobrecarga de S3:
+
+Crea el archivo `storage/oci.ts`:
+
+```ts
+// storage/oci.ts
+import { createOrasStorage } from "bustatic";
+
+export default createOrasStorage({
+  hostname: process.env.OCI_REGISTRY_HOST || "localhost:5000",
+  insecure: true, // true para HTTP local, false para HTTPS en producción
+  defaultTag: "latest",
+});
+```
+
+#### Versionado por Tags OCI en Plantillas
+Al referenciar imágenes en `<photo>` o `<seo>`, puedes especificar o no el tag:
+
+- `<photo key="product/1/portrait" />`: se resuelve automáticamente a `product/1/portrait:latest`.
+- `<photo key="product/1/portrait:2020" />`: se resuelve a la edición clásica `product/1/portrait:2020`.
+- El `digest` SHA-256 inmutable de cada blob se mapea automáticamente como `etag`, garantizando que Bustatic solo descargue y comprima a WebP cuando la imagen en el Registry realmente cambie.
+
+---
+
 ## 🔄 Tipos de Retorno Soportados
 
 La función por defecto de tu loader puede devolver cualquiera de las siguientes opciones:
