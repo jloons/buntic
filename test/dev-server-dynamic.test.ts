@@ -98,4 +98,41 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
     expect(htmlNotFound).toContain("/articulos/bun-v1");
     expect(htmlNotFound).toContain("/articulos/bustatic-ssg");
   });
+
+  test("serves static page with co-located data loader (.data.ts) providing props and route SEO in dev mode", async () => {
+    const port = 34568;
+    const config = createTestConfig(port);
+    mkdirSync(config.pagesDir, { recursive: true });
+
+    writeFileSync(
+      join(config.pagesDir, "index.html"),
+      `<!doctype html><html><head><title>Default</title></head><body><h1>{{props.heading}}</h1><ul><each in="props.items"><li>{{name}}</li></each></ul></body></html>`
+    );
+    writeFileSync(
+      join(config.pagesDir, "index.data.ts"),
+      `
+      export default async function() {
+        return {
+          props: {
+            heading: "Destacados",
+            items: [{ name: "Item A" }, { name: "Item B" }],
+          },
+          seo: {
+            title: "Inicio con Loader",
+          },
+        };
+      }
+      `
+    );
+
+    devInstance = startDevServer(config);
+
+    const res = await fetch(`http://localhost:${port}/`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("<h1>Destacados</h1>");
+    expect(html).toContain("<li>Item A</li>");
+    expect(html).toContain("<li>Item B</li>");
+    expect(html).toContain("<title>Inicio con Loader</title>");
+  });
 });

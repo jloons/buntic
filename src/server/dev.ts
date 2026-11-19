@@ -4,7 +4,7 @@ import type { Server, ServerWebSocket } from "bun";
 import type { ResolvedConfig } from "../types.ts";
 import { TemplateEngine } from "../template/engine.ts";
 import { isIgnoredPath } from "../template/vfs.ts";
-import { resolveAllRoutes } from "../router/routes.ts";
+import { resolveAllRoutes, findCoLocatedLoader } from "../router/routes.ts";
 import { PhotoProcessor } from "../assets/photo-tag.ts";
 import { SeoMetadataEngine } from "../seo/metadata.ts";
 import { generateSitemapXml } from "../seo/sitemap.ts";
@@ -180,10 +180,10 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
 
       // 1. Try matching an exact static HTML page in pagesDir
       const candidatePagePaths: string[] = [];
-      if (pathname === "/" || pathname === "") {
+      const clean = pathname.replace(/^\/+|\/+$/g, "").replace(/\.html$/, "");
+      if (clean === "" || clean === "index") {
         candidatePagePaths.push(join(config.pagesDir, "index.html"));
       } else {
-        const clean = pathname.replace(/^\/+|\/+$/g, "");
         candidatePagePaths.push(join(config.pagesDir, `${clean}.html`));
         candidatePagePaths.push(join(config.pagesDir, clean, "index.html"));
       }
@@ -192,15 +192,44 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
         if (existsSync(cand)) {
           try {
             const raw = await Bun.file(cand).text();
-            let rendered = await engine.renderPage(raw, cand);
+
+            // Execute co-located loader if present (.data.ts, .data.js, .data.mjs)
+            const loaderPath = findCoLocatedLoader(cand);
+            let props: Record<string, any> = {};
+            let routeSeo: any = undefined;
+
+            if (loaderPath) {
+              const globalData = await engine.loadData();
+              const mod = await import(`${loaderPath}?t=${Date.now()}`);
+              const handler = mod.default ?? mod.getStaticPaths ?? mod.loader;
+              if (typeof handler === "function") {
+                const result = await handler({
+                  data: globalData,
+                  env: globalData.env || {},
+                });
+                if (result && typeof result === "object" && !Array.isArray(result)) {
+                  if ("props" in result || "seo" in result || "feed" in result) {
+                    props = result.props || {};
+                    routeSeo = result.seo;
+                  } else {
+                    props = result;
+                  }
+                }
+              }
+            }
+
+            let rendered = await engine.renderPage(raw, cand, { props });
 
             // Process <photo> tags
             rendered = await photoProcessor.processHtml(rendered, cand);
 
+            const normalizedUrlPath = clean === "" || clean === "index" ? "/" : `/${clean}`;
+
             // Process SEO
             rendered = await seoEngine.processSeo(rendered, {
               templatePath: cand,
-              urlPath: pathname === "" ? "/" : pathname,
+              urlPath: normalizedUrlPath,
+              routeSeo,
             });
 
             // Inject live-reload script
@@ -231,7 +260,7 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       // 2. Try matching dynamic routes ([slug], [page], etc.)
       try {
         const globalData = await engine.loadData();
-        const routes = await resolveAllRoutes(config, globalData);
+        const routes = await resolveAllRoutes(config, globalData, { cacheBust: true });
         const cleanRequested =
           pathname === "" || pathname === "/" ? "/" : "/" + pathname.replace(/^\/+|\/+$/g, "");
         const matchedRoute = routes.find((r) => r.urlPath === cleanRequested);

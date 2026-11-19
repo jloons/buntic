@@ -224,7 +224,8 @@ function findHtmlFiles(dir: string, baseDir = dir): string[] {
  */
 export async function resolveAllRoutes(
   config: ResolvedConfig,
-  globalData: Record<string, any>
+  globalData: Record<string, any>,
+  options?: { cacheBust?: boolean }
 ): Promise<PageRouteInfo[]> {
   const htmlFiles = findHtmlFiles(config.pagesDir);
   const routes: PageRouteInfo[] = [];
@@ -244,7 +245,8 @@ export async function resolveAllRoutes(
 
       if (loaderPath) {
         try {
-          const mod = await import(loaderPath);
+          const importPath = options?.cacheBust ? `${loaderPath}?t=${Date.now()}` : loaderPath;
+          const mod = await import(importPath);
           const handler = mod.default ?? mod.getStaticPaths ?? mod.loader;
           if (typeof handler === "function") {
             const result = await handler({
@@ -306,7 +308,8 @@ export async function resolveAllRoutes(
       const relLoader = relative(config.root, loaderPath);
       let mod: any;
       try {
-        mod = await import(loaderPath);
+        const importPath = options?.cacheBust ? `${loaderPath}?t=${Date.now()}` : loaderPath;
+        mod = await import(importPath);
       } catch (err: any) {
         console.error(
           `\x1b[31m[Bustatic Error]\x1b[0m Failed to import loader "${relLoader}":`,
