@@ -28,7 +28,7 @@ export default async function({ data, env, paginate }) {
     params: {
       slug: art.slug,
     },
-    // Datos disponibles en la plantilla HTML como {{ post.titulo }}
+    // Datos disponibles en la plantilla HTML como {{ props.post.titulo }}
     props: {
       post: art,
     },
@@ -56,6 +56,28 @@ export default async function({ data, env, paginate }) {
 * `data`: Objeto con todos los datos cargados desde la carpeta global `data/`.
 * `env`: Variables de entorno públicas seguras.
 * `paginate`: Función utilitaria para dividir colecciones en páginas automáticamente (ver [Guía de Paginación](./pagination.md)).
+
+### Loaders Co-ubicados para Páginas Estáticas (`pages/index.data.ts`)
+
+Las páginas **sin parámetros dinámicos** (como `pages/index.html` o `pages/about.html`) también pueden tener un loader co-ubicado `.data.ts` / `.data.js` que devuelva un objeto con `props`, `seo` y/o `feed`:
+
+```ts
+// pages/index.data.ts
+export default async function({ data, env }) {
+  const productos = data.products || [];
+  return {
+    props: {
+      featured: productos.filter((p: any) => p.featured),
+    },
+    seo: {
+      title: "Inicio | Mi Catálogo",
+      description: "Productos destacados de la temporada.",
+    },
+  };
+}
+```
+
+En `pages/index.html`, los datos se consumen mediante el espacio de nombres `props` (ej. `<each in="props.featured">`). Tanto los loaders estáticos como los dinámicos se ejecutan en `bustatic build` **y en `bustatic dev`** con invalidación automática de caché al guardar cambios.
 
 ---
 

@@ -660,8 +660,8 @@ export class TemplateEngine {
     );
 
     // Replace default slot: <slot></slot> or <slot />
-    rendered = rendered.replace(/<slot\s*>\s*<\/slot>/gi, defaultContent);
-    rendered = rendered.replace(/<slot\s*\/>/gi, defaultContent);
+    rendered = rendered.replace(/<slot\s*>\s*<\/slot>/gi, () => defaultContent);
+    rendered = rendered.replace(/<slot\s*\/>/gi, () => defaultContent);
 
     // Process <each> in layout
     rendered = await this.resolveEach(rendered, context, layoutFilePath);

@@ -68,23 +68,27 @@ Este directorio contiene plantillas y snippets canónicos listos para copiar y u
 
 ---
 
-## 3. Componente con Estilos Scoped (`components/card.html`)
+## 3. Componente con Estilos Scoped (`components/card.html` + `card.css`)
 
 ```html
-<div class="card">
+<article class="card">
   <style scoped>
+    /* Usa "&" para estilizar la raíz y sus estados; nunca ".card { ... }" sin "&" */
     & {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
       border-radius: 8px;
       padding: 1.5rem;
     }
+    &:hover {
+      border-color: var(--color-accent);
+    }
     h3 {
-      color: #38bdf8;
+      color: var(--color-accent);
       margin-top: 0;
     }
     p {
-      color: #94a3b8;
+      color: var(--color-text-muted);
     }
   </style>
 
@@ -93,12 +97,32 @@ Este directorio contiene plantillas y snippets canónicos listos para copiar y u
   <div class="actions" if="url">
     <a href="{{ url }}">Conocer más &rarr;</a>
   </div>
-</div>
+</article>
 ```
 
 ---
 
-## 4. Loader Dinámico con SQLite y Paginación (`pages/articulos/[page].data.ts`)
+## 4. Loader Co-ubicado para Página Estática (`pages/index.data.ts`)
+
+```ts
+export default async function({ data }) {
+  const productos = data.products || [];
+  return {
+    props: {
+      featured: productos.filter((p: any) => p.featured),
+    },
+    seo: {
+      title: "Inicio | Mi Catálogo",
+      description: "Productos destacados",
+    },
+  };
+}
+```
+> En `pages/index.html`, se consume con `<each in="props.featured">`.
+
+---
+
+## 5. Loader Dinámico con SQLite y Paginación (`pages/articulos/[page].data.ts`)
 
 ```ts
 import { Database } from "bun:sqlite";
@@ -116,3 +140,19 @@ export default async function({ paginate }) {
   });
 }
 ```
+> En `pages/articulos/[page].html`, consume `props.page.data`, `props.page.currentPage`, `props.page.lastPage`, `props.page.url.prev`, `props.page.url.next` y `props.tituloSeccion`.
+
+---
+
+## 6. Storage Loader OCI Registry / ORAS (`storage/oci.ts`)
+
+```ts
+import { createOrasStorage } from "bustatic";
+
+export default createOrasStorage({
+  hostname: process.env.OCI_REGISTRY_HOST || "localhost:5000",
+  insecure: true,
+  defaultTag: "latest",
+});
+```
+> En plantillas: `<photo key="product/1/portrait" alt="Actual" />` o con tag explícito `<photo key="product/1/portrait:2020" alt="Edición 2020" />`.

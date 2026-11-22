@@ -34,13 +34,23 @@ export interface RootElementInfo {
 }
 
 /**
+ * Creates a fresh HTML tokenizer regex for tag-stack analysis:
+ * - Skips HTML comments (<!-- ... -->) and <!doctype ...>
+ * - Skips complete <script>...</script> and <style>...</style> blocks so their bodies cannot corrupt tag depth
+ * - Captures closing tag name (group 1), opening tag name (group 2), attributes (group 3), and self-closing "/" (group 4)
+ *   without letting attributes swallow trailing "/>" on self-closing non-void tags like <photo ... /> or <path ... />.
+ */
+function createHtmlTagRegex(): RegExp {
+  return /<!--[\s\S]*?-->|<!doctype[^>]*>|<script\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/script>|<style\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/style>|<\/([a-zA-Z0-9_-]+)\s*>|<([a-zA-Z0-9_-]+)((?:\s+[^\s"'<>\/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|(?:\x2f(?!>)|[^\s"'=<>`\/])+))?)*)\s*(\/?)>/gi;
+}
+
+/**
  * Validates whether an HTML string has exactly one top-level container element.
  * Returns information about the root element's opening tag, or null if there are
  * multiple root elements (fragment), no elements, or non-whitespace root text.
  */
 export function findSingleRootElement(html: string): RootElementInfo | null {
-  const tagRegex =
-    /<!--[\s\S]*?-->|<\/([a-zA-Z0-9_-]+)\s*>|<([a-zA-Z0-9_-]+)((?:\s+[^"'<>/]+|='[^']*'|="[^"]*"|=[^\s"'<>]+)*)\s*(\/?)>/gi;
+  const tagRegex = createHtmlTagRegex();
 
   let match: RegExpExecArray | null;
   let firstRoot: RootElementInfo | null = null;
@@ -63,8 +73,16 @@ export function findSingleRootElement(html: string): RootElementInfo | null {
 
     lastIndexChecked = matchEnd;
 
-    // Skip HTML comments
-    if (fullMatch.startsWith("<!--")) {
+    // Skip HTML comments and <!doctype ...> prologue
+    if (fullMatch.startsWith("<!--") || /^<!doctype\b/i.test(fullMatch)) {
+      continue;
+    }
+
+    // Complete <script>...</script> or <style>...</style> blocks
+    if (/^<(?:script|style)\b/i.test(fullMatch)) {
+      if (depth === 0) {
+        return null;
+      }
       continue;
     }
 
@@ -429,13 +447,18 @@ function findParentTagOfScopedStyle(
   const textBefore = html.slice(0, styleStartIdx);
   const stack: TagOpenInfo[] = [];
 
-  // Match HTML tags: <!-- comments --> or <tag ...> or </tag>
-  const tagRegex = /<!--[\s\S]*?-->|<\/([a-zA-Z0-9_-]+)\s*>|<([a-zA-Z0-9_-]+)((?:\s+[^"'<>]+|='[^']*'|="[^"]*"|=[^\s"'>]+)*)\s*(\/?)>/gi;
+  const tagRegex = createHtmlTagRegex();
   let match: RegExpExecArray | null;
 
   while ((match = tagRegex.exec(textBefore)) !== null) {
     const fullTag = match[0];
-    if (fullTag.startsWith("<!--")) continue;
+    if (
+      fullTag.startsWith("<!--") ||
+      /^<!doctype\b/i.test(fullTag) ||
+      /^<(?:script|style)\b/i.test(fullTag)
+    ) {
+      continue;
+    }
 
     const closingTag = match[1];
     const openingTag = match[2];
@@ -443,10 +466,10 @@ function findParentTagOfScopedStyle(
 
     if (closingTag) {
       const lower = closingTag.toLowerCase();
-      // Pop matching opening tag
+      // Pop matching opening tag and any unclosed descendants inside it
       for (let s = stack.length - 1; s >= 0; s--) {
         if (stack[s].tag.toLowerCase() === lower) {
-          stack.splice(s, 1);
+          stack.splice(s);
           break;
         }
       }

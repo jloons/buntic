@@ -112,6 +112,12 @@ customElements.define("counter-button", CounterButton);
 </counter-button>
 ```
 
+### Anidamiento de Web Components con DSD
+Un Web Component puede incluir otros Web Components dentro de su plantilla `.html` (por ejemplo, `<version-viewer>` anidando `<tag-badge>`). Bustatic expande recursivamente los `<template shadowrootmode="open">` de los componentes internos e inyecta automáticamente los `<script type="module">` necesarios en `<head>` sin duplicarlos.
+
+> [!TIP]
+> Dentro de un archivo `.css` de Web Component, puedes usar `:host` o `&` indistintamente: Bustatic convierte `&` a `:host` de forma automática para estilizar el elemento anfitrión del Shadow DOM. Además, la hoja de estilos global del proyecto se propaga al Shadow DOM para mantener disponibles tus variables CSS (como `--color-*`).
+
 ---
 
 ## 📐 Regla Estricta 1:1: Archivo = Tag

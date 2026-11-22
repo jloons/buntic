@@ -16,12 +16,14 @@ Esta skill proporciona las directrices maestras, sintaxis declarativa y reglas d
 
 ## 🛑 Reglas de Oro de Bustatic
 
-1. **Cero Dependencias Externas:** No instales paquetes de npm (`sharp`, `@aws-sdk`, `pg`, `better-sqlite3`, etc.). Utiliza exclusivamente las APIs nativas del runtime de Bun (`Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, `Bun.build`).
+1. **Cero Dependencias Externas:** No instales paquetes de npm (`sharp`, `@aws-sdk`, `pg`, `ioredis`, `better-sqlite3`, etc.). Utiliza exclusivamente las APIs nativas de Bun (`Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, `RedisClient`, `Bun.build`) y los módulos integrados de Bustatic (`createOrasStorage`, `OrasClient`).
 2. **URLs Limpias por Archivo:** Cada archivo en `pages/` genera una URL limpia sin extensión `.html` (ej. `pages/acerca.html` &rarr; `/acerca` &rarr; `dist/acerca/index.html`).
-3. **Regla 1:1 de Web Components:** Un Web Component por archivo (`.ts` o `.js`). El nombre del archivo debe coincidir de forma idéntica con el tag Custom Element (`counter-button.ts` &rarr; `<counter-button>`).
-4. **Espacios de Nombres Reservados:** `params`, `props`, `env`, `seo`, `feed`. No los uses como identificadores en `data/*.json`.
-5. **No uses `<img>` crudo cuando optimices:** Usa `<photo>` para compresión WebP, dimensiones anti-CLS automáticas y `srcset`.
-6. **No dupliques metadatos en `<head>`:** Usa la etiqueta `<seo>` en la página o el objeto `seo` en el loader hermano para que Bustatic genere los metatags OpenGraph, Twitter y canonical consolidados.
+3. **Usa `&` para estilizar el elemento raíz en Scoped CSS:** Tanto en `<style scoped>` como en archivos `.css` hermanos (`.html` + `.css`), todo selector **sin `&`** (o `:host`) se compila como descendiente (`.bs-xxxx .clase`) y **NO aplica al elemento raíz**. Para estilizar la raíz o sus estados escribe siempre `& { ... }`, `&:hover { ... }`, `&:hover .hijo { ... }` o `&.activo { ... }` — nunca `.clase-raiz { ... }`.
+4. **Regla 1:1 de Web Components:** Un Web Component por archivo (`.ts` o `.js`). El nombre del archivo debe coincidir de forma idéntica con el tag Custom Element (`counter-button.ts` &rarr; `<counter-button>`). Pueden anidarse entre sí con expansión recursiva de Declarative Shadow DOM (DSD).
+5. **Espacios de Nombres Reservados y Acceso a Loaders:** `params`, `props`, `env`, `seo`, `feed`. No los uses como identificadores en `data/*.json`. En plantillas HTML, los datos devueltos por un loader `.data.ts` (estático o dinámico) se consumen siempre bajo `props.*` (ej. `{{ props.product.name }}`, `<each in="props.featured">`, `{{ props.page.currentPage }}`) y los parámetros de ruta bajo `params.*`.
+6. **No uses `<img>` crudo cuando optimices:** Usa `<photo>` para compresión WebP, dimensiones anti-CLS automáticas y `srcset`.
+7. **No dupliques metadatos en `<head>`:** Usa la etiqueta `<seo>` en la página o el objeto `seo` en el loader hermano para que Bustatic genere los metatags OpenGraph, Twitter y canonical consolidados.
+8. **Tokens de color en variables CSS:** Centraliza colores en un archivo dedicado (ej. `src/styles/colors.css` importado con `@import "./colors.css";` desde `src/styles/main.css`) y evita colores hardcodeados en componentes y páginas.
 
 ---
 
@@ -34,23 +36,28 @@ mi-proyecto/
 ├── src/                  # Directorio de fuentes principal (auto-detectado)
 │   ├── pages/            # Enrutamiento: cada .html es una ruta pública
 │   │   ├── index.html    # -> /
+│   │   ├── index.data.ts # Loader co-ubicado para página estática (opcional)
+│   │   ├── index.css     # CSS hermano scoped de la página (opcional)
 │   │   ├── about.html    # -> /about
 │   │   └── blog/
 │   │       ├── [slug].html     # Plantilla con parámetro dinámico
-│   │       └── [slug].data.ts   # Loader hermano co-ubicado
+│   │       └── [slug].data.ts  # Loader hermano co-ubicado
 │   ├── layouts/          # Plantillas base que envuelven páginas con <slot>
 │   │   └── main.html
 │   ├── components/       # Componentes HTML estáticos y Web Components
 │   │   ├── card.html     # Componente HTML reutilizable
+│   │   ├── card.css      # CSS hermano scoped (requiere raíz única y uso de "&")
 │   │   ├── counter.ts    # Lógica cliente del Web Component <counter>
 │   │   ├── counter.html  # Estructura Declarative Shadow DOM
-│   │   └── counter.css   # Estilos encapsulados Shadow DOM
-│   ├── data/             # Almacén global de datos en RAM (JSON, TS)
+│   │   └── counter.css   # Estilos encapsulados Shadow DOM (:host o &)
+│   ├── data/             # Almacén global de datos en RAM (JSON, TS, SQL, Redis)
 │   │   └── site.json     # Disponible globalmente como {{ site.title }}
-│   ├── storage/          # Loaders de servidores de objetos remotos (S3, R2, MinIO)
+│   ├── storage/          # Loaders de objetos remotos (S3, R2, MinIO, OCI Registry)
+│   │   ├── oci.ts        # createOrasStorage({ hostname: "localhost:5000", ... })
 │   │   └── s3.ts         # export default async function(key) { ... }
-│   ├── styles/           # Hojas de estilo globales (main.css)
-│   │   └── main.css
+│   ├── styles/           # Hojas de estilo globales (main.css + colors.css)
+│   │   ├── colors.css    # Variables CSS (:root { --color-*: ... })
+│   │   └── main.css      # @import "./colors.css"; + estilos globales de layout
 │   └── public/           # Assets estáticos copiados directamente a dist/
 │       └── favicon.ico
 ├── docs/                 # Documentación técnica del proyecto (opcional)
@@ -143,25 +150,59 @@ Inyecta en `<head>` el `<title>`, `<link rel="canonical">`, OpenGraph y Twitter 
 <p>Autor: {{ author ?? "Anónimo" }}</p>
 ```
 
-### 7. Estilos Scoped Encapsulados (`<style scoped>`)
+### 7. Estilos Scoped Encapsulados (`<style scoped>` y archivos `.css` hermanos)
 ```html
-<div class="card">
+<!-- components/card.html -->
+<article class="card">
   <style scoped>
+    /* ✅ CORRECTO: usa "&" (o ":host") para el elemento raíz y sus estados */
     & {
-      background: #1e293b;
+      background: var(--color-surface);
       padding: 1rem;
     }
-    h3 {
-      color: #38bdf8;
+    &:hover {
+      border-color: var(--color-accent);
     }
+    &:hover .card-media img {
+      transform: scale(1.03);
+    }
+    /* ✅ Selectores sin "&" aplican a elementos descendientes dentro de la raíz */
+    h3 {
+      color: var(--color-accent);
+    }
+    /* ❌ INCORRECTO: ".card { ... }" se compila como ".bs-xxxx .card" y NO aplica a la raíz */
   </style>
   <h3>{{ title }}</h3>
-</div>
+</article>
 ```
+
+**CSS Hermano Co-ubicado (`.html` + `.css`):**
+- Funciona tanto en **`components/`** (ej. `card.html` + `card.css`) como en **`pages/`** (ej. `index.html` + `index.css` o `[slug].html` + `[slug].css`).
+- **Páginas con `<layout>`:** el CSS hermano y `<style scoped>` al nivel de `<layout>` se vinculan al contenedor padre del `<slot>` del layout (normalmente `<main>`).
+- **Páginas independientes (`<!doctype html>`):** el prólogo `<!doctype html>` se omite automáticamente y el ámbito se aplica al elemento raíz `<html>`.
+- **Orden de cascada:** el `.css` hermano se emite antes que `<style scoped>` inline, por lo que el bloque inline tiene mayor prioridad.
 
 ---
 
 ## 📊 Catálogo de Loaders de Datos (`.data.ts`)
+
+### Loader Co-ubicado para Página Estática (`pages/index.data.ts`)
+Se ejecuta tanto en `bustatic dev` (con recarga en vivo al editar) como en `bustatic build`:
+```ts
+export default async function({ data, env }) {
+  const products = data.products || [];
+  return {
+    props: {
+      featured: products.filter((p: any) => p.featured),
+    },
+    seo: {
+      title: "Inicio | Mi Catálogo",
+      description: "Productos destacados",
+    },
+  };
+}
+```
+En `pages/index.html`, consume `<each in="props.featured">`.
 
 ### Loader Dinámico Estándar (`pages/blog/[slug].data.ts`)
 ```ts
@@ -189,6 +230,7 @@ export default async function({ data, env, paginate }) {
   }));
 }
 ```
+> Para PostgreSQL o Redis en `data/*.ts` o `pages/**/*.data.ts`, usa los clientes nativos `import { SQL, RedisClient } from "bun";`.
 
 ### Paginación Automática con `paginate()` (`pages/articulos/[page].data.ts`)
 ```ts
@@ -202,18 +244,36 @@ export default async function({ paginate }) {
   });
 }
 ```
-En `[page].html`, consume `{{ page.data }}`, `{{ page.currentPage }}`, `{{ page.url.prev }}` y `{{ page.url.next }}`.
+En `[page].html`, consume `props.page`: `<each in="props.page.data">`, `{{ props.page.currentPage }}`, `{{ props.page.lastPage }}`, `{{ props.page.url.prev }}`, `{{ props.page.url.next }}` y `{{ props.seccion }}`.
 
 ---
 
-## 🗄️ Storage Loaders Remotos (`storage/s3.ts`)
+## 🗄️ Storage Loaders Remotos (`storage/`)
 
+### Opción A: OCI Registry / ORAS (`storage/oci.ts`, Recomendado)
+Cliente nativo sin dependencias para Docker Registry v2/v3 y OCI Distribution con soporte de tags e inmutabilidad por digest SHA-256:
+```ts
+import { createOrasStorage } from "bustatic";
+
+export default createOrasStorage({
+  hostname: process.env.OCI_REGISTRY_HOST || "localhost:5000",
+  insecure: true, // false para HTTPS en producción
+  defaultTag: "latest",
+});
+```
+En plantillas HTML puedes referenciar el tag por defecto o una versión específica:
+```html
+<photo key="product/1/portrait" alt="Versión actual" />
+<photo key="product/1/portrait:2020" alt="Versión archivo 2020" />
+```
+
+### Opción B: S3 / Cloudflare R2 / MinIO (`storage/s3.ts`)
 ```ts
 import { S3Client } from "bun";
 
 const s3 = new S3Client({
   bucket: process.env.S3_BUCKET,
-  endpoint: process.env.S3_ENDPOINT, // Para R2 / MinIO
+  endpoint: process.env.S3_ENDPOINT, // Para R2 / MinIO / local-s3
   accessKeyId: process.env.S3_ACCESS_KEY,
   secretAccessKey: process.env.S3_SECRET_KEY,
 });
@@ -228,6 +288,7 @@ export default async function getAsset(key: string) {
   };
 }
 ```
+Si existen múltiples loaders en `storage/`, define `defaultStorage` en `bustatic.config.ts` o usa el atributo `storage="oci"` / `storage="s3"` en `<photo>`.
 
 ---
 
@@ -239,6 +300,8 @@ import { defineConfig } from "bustatic";
 export default defineConfig({
   port: 3000,
   minify: true,
+  cssStrategy: "inline", // "inline" (por defecto) o "external"
+  defaultStorage: process.env.STORAGE_BACKEND || "oci",
   site: {
     url: "https://misitio.com",
     title: "Mi Proyecto",
@@ -278,9 +341,9 @@ Para consultas profundas sobre subsistemas específicos, revisa los documentos e
 - 🧩 [Web Components y Shadow DOM](../../../docs/web-components.md)
 - 🗺️ [Enrutamiento y Rutas Dinámicas](../../../docs/routing-and-pages.md)
 - 📊 [Datos, Loaders y Entorno](../../../docs/data-and-loaders.md)
-- 🗄️ [Motores SQL Nativos](../../../docs/databases-sql.md)
+- 🗄️ [Motores SQL y Redis Nativos](../../../docs/databases-sql.md)
 - 📑 [Paginación Automática](../../../docs/pagination.md)
 - 🖼️ [Optimización de Imágenes](../../../docs/assets-and-images.md)
-- 🗄️ [Storage Loaders para S3 / R2](../../../docs/storage-loaders.md)
+- 🗄️ [Storage Loaders (OCI Registry / ORAS y S3)](../../../docs/storage-loaders.md)
 - 🔍 [Suite SEO y Feeds](../../../docs/seo.md)
 - ⌨️ [Referencia del CLI](../../../docs/cli.md)

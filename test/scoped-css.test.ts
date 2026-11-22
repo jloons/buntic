@@ -201,6 +201,50 @@ describe("Scoped CSS Processor", () => {
       expect(scopedRules.length).toBe(2);
       expect(outputHtml).not.toContain("<style");
     });
+
+    test("ignores self-closing non-void tags (e.g. <photo ... />, <path ... />) when finding parent of <style scoped>", () => {
+      const html = `
+        <main>
+          <section class="hero-banner">
+            <photo key="product/1/portrait" widths="280,560" sizes="(min-width: 640px) 280px, 100vw" alt="Camera" loading="lazy" />
+            <svg viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>
+            <photo key=product/2/portrait/>
+          </section>
+          <style scoped>
+            & { display: flex; gap: 2rem; }
+            .hero-banner { padding: 2rem; }
+          </style>
+        </main>
+      `;
+      const { html: outputHtml, scopedRules } = extractScopedStyles(html);
+      expect(outputHtml).toMatch(/<main class="bs-[a-z0-9]+">/);
+      expect(outputHtml).not.toMatch(/<photo[^>]*class="bs-/);
+      expect(outputHtml).not.toMatch(/<path[^>]*class="bs-/);
+      expect(scopedRules.length).toBe(1);
+      expect(scopedRules[0]).toContain(".hero-banner {");
+    });
+
+    test("ignores HTML-like tokens inside preceding <script> and <style> blocks when finding parent of <style scoped>", () => {
+      const html = `
+        <main>
+          <tag-badge>
+            <template shadowrootmode="open">
+              <style>.a > .b { color: red; }</style>
+              <span>Badge</span>
+            </template>
+          </tag-badge>
+          <script>if (a < b) { const s = "<div class='unclosed'>"; }</script>
+          <section class="content">Hola</section>
+          <style scoped>
+            .content { color: green; }
+          </style>
+        </main>
+      `;
+      const { html: outputHtml, scopedRules } = extractScopedStyles(html);
+      expect(outputHtml).toMatch(/<main class="bs-[a-z0-9]+">/);
+      expect(scopedRules.length).toBe(1);
+      expect(scopedRules[0]).toContain(".content {");
+    });
   });
 
   describe("Integration with TemplateEngine & Deduplication", () => {
@@ -378,6 +422,18 @@ describe("Scoped CSS Processor", () => {
       expect(attached).toContain("<style scoped>");
       expect(attached).toContain("background: black;");
     });
+
+    test("allows <!doctype html> prologue before a single <html> root element", () => {
+      const html = `<!doctype html>\n<html lang="es"><head><title>Hi</title></head><body><photo key="a/b" /></body></html>`;
+      const root = findSingleRootElement(html);
+      expect(root).not.toBeNull();
+      expect(root?.tag).toBe("html");
+    });
+
+    test("rejects top-level <script> or <style> alongside another root element", () => {
+      expect(findSingleRootElement(`<script>console.log(1)</script><div>Hi</div>`)).toBeNull();
+      expect(findSingleRootElement(`<style>body{}</style><div>Hi</div>`)).toBeNull();
+    });
   });
 
   describe("Co-located Sibling CSS Files (.html + .css)", () => {
@@ -537,6 +593,91 @@ describe("Scoped CSS Processor", () => {
       expect(blueIdx).toBeGreaterThan(-1);
       expect(redIdx).toBeGreaterThan(-1);
       expect(blueIdx).toBeLessThan(redIdx);
+    });
+
+    test("applies sibling CSS to a page using <layout> and to a standalone <!doctype html> page", async () => {
+      const { mkdirSync, rmSync, writeFileSync, existsSync } = await import("node:fs");
+      const { resolveConfig } = await import("../src/config.ts");
+      const { Builder } = await import("../src/builder/builder.ts");
+      const { startDevServer } = await import("../src/server/dev.ts");
+
+      const tmpDir = join(import.meta.dir, ".tmp-test-page-sibling-css");
+      if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true });
+      mkdirSync(join(tmpDir, "src/pages"), { recursive: true });
+      mkdirSync(join(tmpDir, "src/layouts"), { recursive: true });
+
+      writeFileSync(
+        join(tmpDir, "src/layouts/main.html"),
+        `<!doctype html><html><head><title>Layout</title></head><body><main><slot></slot></main></body></html>`
+      );
+      // 1. Page using <layout> + sibling .css + inline <style scoped> after self-closing tag
+      writeFileSync(
+        join(tmpDir, "src/pages/index.html"),
+        `<layout src="../layouts/main.html">
+          <section class="hero"><h1>Inicio</h1><svg><path d="M0 0"/></svg></section>
+          <style scoped>
+            .hero { padding: 2rem; }
+          </style>
+        </layout>`
+      );
+      writeFileSync(
+        join(tmpDir, "src/pages/index.css"),
+        `& { display: flex; flex-direction: column; }\n.hero { color: teal; padding: 1rem; }`
+      );
+
+      // 2. Standalone page with <!doctype html> + sibling .css
+      writeFileSync(
+        join(tmpDir, "src/pages/standalone.html"),
+        `<!doctype html>
+        <html lang="es">
+          <head><title>Standalone</title></head>
+          <body><div class="box">Hola</div></body>
+        </html>`
+      );
+      writeFileSync(
+        join(tmpDir, "src/pages/standalone.css"),
+        `.box { border: 2px solid orange; }`
+      );
+
+      const devConfig = await resolveConfig(tmpDir, { port: 38896 });
+      const dev = startDevServer(devConfig);
+
+      const buildConfig = await resolveConfig(tmpDir, { outDir: join(tmpDir, "dist") });
+      const builder = new Builder(buildConfig);
+
+      try {
+        await builder.build();
+
+        // Compare index page (layout + sibling CSS + inline <style scoped>)
+        const devIndexHtml = await (await fetch(`http://localhost:${dev.port}/`)).text();
+        const buildIndexHtml = await Bun.file(join(tmpDir, "dist/index.html")).text();
+
+        const devMainTag = devIndexHtml.match(/<main[^>]*>/)?.[0] || "";
+        const buildMainTag = buildIndexHtml.match(/<main[^>]*>/)?.[0] || "";
+        expect(devMainTag).toMatch(/^<main class="bs-[a-z0-9]+ bs-[a-z0-9]+">$/);
+        expect(buildMainTag).toBe(devMainTag);
+
+        const devScoped = devIndexHtml.match(/<style id="__bustatic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
+        const buildScoped = buildIndexHtml.match(/<style id="__bustatic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
+        expect(devScoped).toContain("color: teal;");
+        expect(devScoped).toContain("padding: 2rem;");
+        expect(devScoped.indexOf("padding: 1rem;")).toBeLessThan(devScoped.indexOf("padding: 2rem;"));
+        expect(buildScoped).toBe(devScoped);
+
+        // Compare standalone page (<!doctype html> + sibling CSS)
+        const devStandaloneHtml = await (await fetch(`http://localhost:${dev.port}/standalone`)).text();
+        const buildStandaloneHtml = await Bun.file(join(tmpDir, "dist/standalone.html")).text();
+
+        const devHtmlTag = devStandaloneHtml.match(/<html[^>]*>/)?.[0] || "";
+        const buildHtmlTag = buildStandaloneHtml.match(/<html[^>]*>/)?.[0] || "";
+        expect(devHtmlTag).toMatch(/^<html lang="es" class="bs-[a-z0-9]+">$/);
+        expect(buildHtmlTag).toBe(devHtmlTag);
+        expect(devStandaloneHtml).toContain("border: 2px solid orange;");
+        expect(buildStandaloneHtml).toContain("border: 2px solid orange;");
+      } finally {
+        dev.stop();
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 });

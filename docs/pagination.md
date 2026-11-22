@@ -73,14 +73,14 @@ Bustatic inyecta automáticamente en tu plantilla el objeto `page` dentro de `pr
 
 ```html
 <layout src="../../layouts/main.html">
-  <seo title="Artículos - Página {{ page.currentPage }} de {{ page.lastPage }}" />
+  <seo title="Artículos - Página {{ props.page.currentPage }} de {{ props.page.lastPage }}" />
 
-  <h1>{{ tituloSeccion }}</h1>
-  <p>Mostrando {{ page.data.length }} de {{ page.total }} artículos.</p>
+  <h1>{{ props.tituloSeccion }}</h1>
+  <p>Mostrando {{ props.page.data.length }} de {{ props.page.total }} artículos.</p>
 
   <!-- Lista de artículos de la página actual -->
   <div class="grid">
-    <each in="page.data" as="articulo">
+    <each in="props.page.data" as="articulo">
       <article class="card">
         <h3>{{ articulo.titulo }}</h3>
         <p>{{ articulo.resumen }}</p>
@@ -91,18 +91,18 @@ Bustatic inyecta automáticamente en tu plantilla el objeto `page` dentro de `pr
 
   <!-- Controles de navegación y paginación -->
   <nav class="pagination" aria-label="Navegación de páginas">
-    <if is="page.url.prev">
-      <a href="{{ page.url.prev }}" class="btn">&larr; Anterior</a>
+    <if is="props.page.url.prev">
+      <a href="{{ props.page.url.prev }}" class="btn">&larr; Anterior</a>
     <else>
       <span class="btn disabled">&larr; Anterior</span>
     </if>
 
     <span class="page-indicator">
-      Página {{ page.currentPage }} de {{ page.lastPage }}
+      Página {{ props.page.currentPage }} de {{ props.page.lastPage }}
     </span>
 
-    <if is="page.url.next">
-      <a href="{{ page.url.next }}" class="btn">Siguiente &rarr;</a>
+    <if is="props.page.url.next">
+      <a href="{{ props.page.url.next }}" class="btn">Siguiente &rarr;</a>
     <else>
       <span class="btn disabled">Siguiente &rarr;</span>
     </if>
