@@ -117,7 +117,7 @@ export class SeoMetadataEngine {
       } catch (err: unknown) {
         logWarn(
           `Failed to process social image in "${templatePath}": ${getErrorMessage(err)}`,
-          "Bustatic SEO Warning"
+          "Buntic SEO Warning"
         );
       }
     }

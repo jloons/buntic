@@ -6,7 +6,7 @@ import { mkdirSync, rmSync } from "node:fs";
 
 describe("TemplateEngine", () => {
   test("interpolates data variables", async () => {
-    const fixtureDir = "/tmp/bustatic-test-template-data";
+    const fixtureDir = "/tmp/buntic-test-template-data";
     mkdirSync(join(fixtureDir, "data"), { recursive: true });
     mkdirSync(join(fixtureDir, "pages"), { recursive: true });
     mkdirSync(join(fixtureDir, "layouts"), { recursive: true });
@@ -14,7 +14,7 @@ describe("TemplateEngine", () => {
 
     await Bun.write(
       join(fixtureDir, "data", "site.json"),
-      JSON.stringify({ name: "Bustatic Test", year: 2026 })
+      JSON.stringify({ name: "Buntic Test", year: 2026 })
     );
 
     const config = await resolveConfig(fixtureDir);
@@ -23,12 +23,12 @@ describe("TemplateEngine", () => {
     const html = "<h1>{{site.name}} - {{site.year}}</h1><p>{{ site.name }}</p>";
     const rendered = await engine.renderPage(html);
 
-    expect(rendered).toBe("<h1>Bustatic Test - 2026</h1><p>Bustatic Test</p>");
+    expect(rendered).toBe("<h1>Buntic Test - 2026</h1><p>Buntic Test</p>");
     rmSync(fixtureDir, { recursive: true, force: true });
   });
 
   test("resolves layout and default slot", async () => {
-    const fixtureDir = "/tmp/bustatic-test-layout";
+    const fixtureDir = "/tmp/buntic-test-layout";
     mkdirSync(join(fixtureDir, "layouts"), { recursive: true });
     mkdirSync(join(fixtureDir, "pages"), { recursive: true });
     mkdirSync(join(fixtureDir, "components"), { recursive: true });
@@ -50,7 +50,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves named slots in layout", async () => {
-    const fixtureDir = "/tmp/bustatic-test-named-slots";
+    const fixtureDir = "/tmp/buntic-test-named-slots";
     mkdirSync(join(fixtureDir, "layouts"), { recursive: true });
     mkdirSync(join(fixtureDir, "pages"), { recursive: true });
     mkdirSync(join(fixtureDir, "components"), { recursive: true });
@@ -73,7 +73,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves components with props and inner slots", async () => {
-    const fixtureDir = "/tmp/bustatic-test-components";
+    const fixtureDir = "/tmp/buntic-test-components";
     mkdirSync(join(fixtureDir, "components"), { recursive: true });
     mkdirSync(join(fixtureDir, "pages"), { recursive: true });
     mkdirSync(join(fixtureDir, "layouts"), { recursive: true });
@@ -95,7 +95,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves relative paths (../ and ./) with VS Code Ctrl+Click style", async () => {
-    const fixtureDir = "/tmp/bustatic-test-relative-paths";
+    const fixtureDir = "/tmp/buntic-test-relative-paths";
     const pagesDir = join(fixtureDir, "pages");
     const layoutsDir = join(fixtureDir, "layouts");
     const componentsDir = join(fixtureDir, "components");
@@ -144,7 +144,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves <each src='...'> with auto-spread to <component>", async () => {
-    const fixtureDir = "/tmp/bustatic-test-each-spread";
+    const fixtureDir = "/tmp/buntic-test-each-spread";
     const dataDir = join(fixtureDir, "data");
     const componentsDir = join(fixtureDir, "components");
     mkdirSync(dataDir, { recursive: true });
@@ -183,7 +183,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves <each in='...'> with alias and primitive arrays", async () => {
-    const fixtureDir = "/tmp/bustatic-test-each-in";
+    const fixtureDir = "/tmp/buntic-test-each-in";
     const dataDir = join(fixtureDir, "data");
     mkdirSync(dataDir, { recursive: true });
 
@@ -208,7 +208,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves <if is='...'> with <else>", async () => {
-    const fixtureDir = "/tmp/bustatic-test-if-else";
+    const fixtureDir = "/tmp/buntic-test-if-else";
     const dataDir = join(fixtureDir, "data");
     mkdirSync(dataDir, { recursive: true });
 
@@ -245,7 +245,7 @@ describe("TemplateEngine", () => {
   });
 
   test("resolves variable fallback with ??", async () => {
-    const fixtureDir = "/tmp/bustatic-test-fallback";
+    const fixtureDir = "/tmp/buntic-test-fallback";
     mkdirSync(fixtureDir, { recursive: true });
 
     const config = await resolveConfig(fixtureDir);

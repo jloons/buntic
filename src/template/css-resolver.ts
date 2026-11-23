@@ -84,21 +84,21 @@ export async function resolvePageCss(options: {
           cssContent = await Bun.file(cssFilePath).text();
         }
 
-        const styleBlock = `<style id="__bustatic_global">\n${cssContent}\n</style>`;
+        const styleBlock = `<style id="__buntic_global">\n${cssContent}\n</style>`;
         result = replaceLiteral(result, fullTag, styleBlock);
         hadManualGlobalLink = true;
       }
     }
 
     const headMatch = result.match(/<head[\s\S]*?<\/head>/i);
-    const headHasGlobalStyle = headMatch ? headMatch[0].includes('id="__bustatic_global"') : false;
+    const headHasGlobalStyle = headMatch ? headMatch[0].includes('id="__buntic_global"') : false;
     if (!hadManualGlobalLink && !headHasGlobalStyle && globalCssContent) {
-      const globalTag = `  <style id="__bustatic_global">\n${globalCssContent}\n</style>`;
+      const globalTag = `  <style id="__buntic_global">\n${globalCssContent}\n</style>`;
       result = injectIntoHead(result, globalTag, "prepend");
     }
 
     if (hasScopedRules) {
-      const scopedTag = `  <style id="__bustatic_scoped">\n${scopedCssText}\n</style>`;
+      const scopedTag = `  <style id="__buntic_scoped">\n${scopedCssText}\n</style>`;
       result = injectIntoHead(result, scopedTag, "append");
     }
 

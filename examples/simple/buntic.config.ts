@@ -4,8 +4,8 @@ export default defineConfig({
   port: 3000,
   minify: true,
   site: {
-    url: "https://simple.bustatic.dev",
-    title: "Bustatic Simple",
-    description: "Sitio web de ejemplo simple con Bustatic"
+    url: "https://simple.buntic.dev",
+    title: "Buntic Simple",
+    description: "Sitio web de ejemplo simple con Buntic"
   }
 });

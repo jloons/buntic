@@ -1,8 +1,8 @@
 {
-  "title": "Bustatic Simple",
-  "description": "Ejemplo estático sencillo y moderno creado con Bustatic",
+  "title": "Buntic Simple",
+  "description": "Ejemplo estático sencillo y moderno creado con Buntic",
   "year": 2026,
-  "author": "Equipo Bustatic",
+  "author": "Equipo Buntic",
   "navLinks": [
     { "label": "Inicio", "url": "/" },
     { "label": "Acerca de", "url": "/about" },

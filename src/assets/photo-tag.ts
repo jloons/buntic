@@ -63,7 +63,7 @@ export class PhotoProcessor {
 
       if (!src && !key) {
         throw new Error(
-          `[Bustatic Error] <photo> tag must have a "src" (for local files) or a "key" (for remote storage) in "${templatePath}".\n` +
+          `[Buntic Error] <photo> tag must have a "src" (for local files) or a "key" (for remote storage) in "${templatePath}".\n` +
             `  Found: ${match.fullMatch}`
         );
       }
@@ -125,7 +125,7 @@ export class PhotoProcessor {
     const localPath = resolveLocalAssetPath(this.config, src!, templatePath);
     if (!existsSync(localPath)) {
       throw new Error(
-        `[Bustatic Error] Local image file "${src}" referenced in <photo> not found.\n` +
+        `[Buntic Error] Local image file "${src}" referenced in <photo> not found.\n` +
           `  Looked in: "${localPath}"\n` +
           `  Referenced in: "${templatePath}"`
       );

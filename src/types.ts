@@ -70,7 +70,7 @@ export interface PhotoAttributes {
   [key: string]: any;
 }
 
-export interface BustaticConfig {
+export interface BunticConfig {
   root?: string;
   pagesDir?: string;
   layoutsDir?: string;

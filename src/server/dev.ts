@@ -44,12 +44,12 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
         if (c.type === "route") {
           logWarn(
             `Public file "${c.publicPath}" conflicts with page template "${c.conflictWith}" (both resolve to "${c.outputPath}").`,
-            "Bustatic Collision Warning"
+            "Buntic Collision Warning"
           );
         } else {
           logWarn(
             `Public file "${c.publicPath}" conflicts with reserved internal path "${c.conflictWith}".`,
-            "Bustatic Collision Warning"
+            "Buntic Collision Warning"
           );
         }
       }
@@ -104,7 +104,7 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
         return new Response("Bad Request", { status: 400 });
       }
 
-      if (pathname === "/_bustatic/ws") {
+      if (pathname === "/_buntic/ws") {
         if (srv.upgrade(req)) return;
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
@@ -161,7 +161,7 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
             seoEngine,
           });
         } catch (err: unknown) {
-          return renderErrorResponse("[Bustatic Template Error]", err);
+          return renderErrorResponse("[Buntic Template Error]", err);
         }
       }
 
@@ -186,7 +186,7 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
           });
         }
       } catch (err: unknown) {
-        return renderErrorResponse("[Bustatic Dynamic Route Error]", err);
+        return renderErrorResponse("[Buntic Dynamic Route Error]", err);
       }
 
       // 3. Try serving generated page-specific scoped CSS (in external mode)

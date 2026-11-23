@@ -30,10 +30,10 @@ describe("Builder", () => {
     expect(existsSync(contactHtmlPath)).toBe(true);
 
     const indexHtml = await Bun.file(indexHtmlPath).text();
-    expect(indexHtml).toContain("Inicio | Bustatic Simple");
+    expect(indexHtml).toContain("Inicio | Buntic Simple");
     expect(indexHtml).toContain("Características Principales");
     expect(indexHtml).toContain("feature-card");
-    expect(indexHtml).toContain("Bustatic Simple");
+    expect(indexHtml).toContain("Buntic Simple");
 
     const aboutHtml = await Bun.file(aboutHtmlPath).text();
     expect(aboutHtml).toContain("Acerca de este proyecto");
@@ -43,10 +43,10 @@ describe("Builder", () => {
     expect(contactHtml).toContain("Contacto");
     expect(contactHtml).toContain("contacto@example.com");
 
-    // Verify robots.txt and bustatic-icon.svg from public/ copied to dist/
+    // Verify robots.txt and buntic-icon.svg from public/ copied to dist/
     const robotsPath = join(outDir, "robots.txt");
     expect(existsSync(robotsPath)).toBe(true);
-    const iconPath = join(outDir, "bustatic-icon.svg");
+    const iconPath = join(outDir, "buntic-icon.svg");
     expect(existsSync(iconPath)).toBe(true);
 
     // In default inline mode, scoped CSS is inlined directly into HTML

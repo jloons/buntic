@@ -11,11 +11,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "bustatic": [
-        "./node_modules/bustatic/dist/index.d.ts",
-        "./.bustatic/types/index.d.ts"
+      "buntic": [
+        "./node_modules/buntic/dist/index.d.ts",
+        "./.buntic/types/index.d.ts"
       ]
     }
   },
-  "include": ["src/**/*", "bustatic.config.ts"]
+  "include": ["src/**/*", "buntic.config.ts"]
 }

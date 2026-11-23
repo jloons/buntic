@@ -16,7 +16,7 @@ export function isIgnoredPath(filePathOrName: string): boolean {
       seg === ".git" ||
       seg === ".agents" ||
       seg === "dist" ||
-      seg.startsWith(".bustatic")
+      seg.startsWith(".buntic")
     ) {
       return true;
     }

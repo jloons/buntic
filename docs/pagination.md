@@ -2,7 +2,7 @@
 
 Cuando manejas colecciones grandes de registros (blogs, listas de productos, directorios), renderizar cientos de elementos en una sola página afecta la velocidad de carga y la experiencia del usuario.
 
-Bustatic proporciona un asistente declarativo `paginate()` inyectado directamente en los loaders de datos que segmenta tus colecciones en múltiples páginas estáticas optimizadas para SEO.
+Buntic proporciona un asistente declarativo `paginate()` inyectado directamente en los loaders de datos que segmenta tus colecciones en múltiples páginas estáticas optimizadas para SEO.
 
 ---
 
@@ -52,7 +52,7 @@ Para cumplir con las mejores prácticas de posicionamiento web (Google Search Co
 
 ## 📦 El Objeto `props.page`
 
-Bustatic inyecta automáticamente en tu plantilla el objeto `page` dentro de `props`:
+Buntic inyecta automáticamente en tu plantilla el objeto `page` dentro de `props`:
 
 | Propiedad | Tipo | Descripción |
 | :--- | :--- | :--- |

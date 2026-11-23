@@ -78,7 +78,7 @@ export async function loadGlobalData(
       }
     }
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes("[Bustatic Error]")) {
+    if (err instanceof Error && err.message.includes("[Buntic Error]")) {
       throw err;
     }
     // Ignored if data directory cannot be read

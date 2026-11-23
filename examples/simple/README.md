@@ -1,6 +1,6 @@
-# ⚡ Bustatic Simple Example
+# ⚡ Buntic Simple Example
 
-Ejemplo sencillo y 100% estático creado con **Bustatic**.
+Ejemplo sencillo y 100% estático creado con **Buntic**.
 
 ---
 
@@ -14,8 +14,8 @@ examples/simple/
 │   ├── components/    # header, footer, card (HTML + CSS scoped)
 │   ├── data/          # site.json, features.json
 │   ├── styles/        # main.css
-│   └── public/        # robots.txt, bustatic-icon.svg
-├── bustatic.config.ts
+│   └── public/        # robots.txt, buntic-icon.svg
+├── buntic.config.ts
 └── package.json
 ```
 

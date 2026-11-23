@@ -1,6 +1,6 @@
-# 📋 Ejemplos de Referencia para Bustatic
+# 📋 Ejemplos de Referencia para Buntic
 
-Este directorio contiene plantillas y snippets canónicos listos para copiar y usar en proyectos Bustatic.
+Este directorio contiene plantillas y snippets canónicos listos para copiar y usar en proyectos Buntic.
 
 ---
 
@@ -43,7 +43,7 @@ Este directorio contiene plantillas y snippets canónicos listos para copiar y u
 <layout src="../layouts/main.html">
   <seo 
     title="Inicio | Mi Empresa" 
-    description="Bienvenido al sitio web oficial generado con Bustatic."
+    description="Bienvenido al sitio web oficial generado con Buntic."
     image="/images/hero.png"
   />
 
@@ -147,7 +147,7 @@ export default async function({ paginate }) {
 ## 6. Storage Loader OCI Registry / ORAS (`storage/oci.ts`)
 
 ```ts
-import { createOrasStorage } from "bustatic";
+import { createOrasStorage } from "buntic";
 
 export default createOrasStorage({
   hostname: process.env.OCI_REGISTRY_HOST || "localhost:5000",

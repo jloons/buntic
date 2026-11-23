@@ -14,7 +14,7 @@ import { ANNOTATIONS, MEDIA_TYPES } from "../src/storage/oras/types.ts";
 describe("Security & Regression Fixes", () => {
   const tempDirs: string[] = [];
 
-  function makeTempDir(prefix = "bustatic-sec-"): string {
+  function makeTempDir(prefix = "buntic-sec-"): string {
     const dir = mkdtempSync(join(tmpdir(), prefix));
     tempDirs.push(dir);
     return dir;
@@ -29,7 +29,7 @@ describe("Security & Regression Fixes", () => {
       dataDir: join(root, "src/data"),
       publicDir: join(root, "src/public"),
       storageDir: join(root, "src/storage"),
-      cacheDir: join(root, ".bustatic/cache/images"),
+      cacheDir: join(root, ".buntic/cache/images"),
       outDir: join(root, "dist"),
       port,
       minify: false,
@@ -80,7 +80,7 @@ describe("Security & Regression Fixes", () => {
       const errRes = await fetch(`http://localhost:${server.port}/broken`);
       expect(errRes.status).toBe(500);
       const errBody = await errRes.text();
-      expect(errBody).toContain("[Bustatic Template Error]");
+      expect(errBody).toContain("[Buntic Template Error]");
       expect(errBody).toContain("Layout not found");
     } finally {
       server.stop();
@@ -88,7 +88,7 @@ describe("Security & Regression Fixes", () => {
   });
 
   test("OrasClient.pull rejects unsafe layer titles attempting path traversal", async () => {
-    const outdir = makeTempDir("bustatic-oras-out-");
+    const outdir = makeTempDir("buntic-oras-out-");
     const evilManifest = {
       schemaVersion: 2 as const,
       mediaType: MEDIA_TYPES.OCI_IMAGE_MANIFEST_V1,
@@ -201,8 +201,8 @@ describe("Security & Regression Fixes", () => {
     expect(atom).toContain('href="https://example.com/custom-atom.xml" rel="self"');
   });
 
-  test("VFS ignores .agents directory installed by bustatic init", () => {
-    expect(isIgnoredPath(".agents/skills/bustatic/SKILL.md")).toBe(true);
+  test("VFS ignores .agents directory installed by buntic init", () => {
+    expect(isIgnoredPath(".agents/skills/buntic/SKILL.md")).toBe(true);
     expect(isIgnoredPath("src/.agents/foo.ts")).toBe(true);
     expect(isIgnoredPath("src/components/my-card.ts")).toBe(false);
   });

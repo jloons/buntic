@@ -1,5 +1,5 @@
 /**
- * Standardized console logging and error formatting utilities for Bustatic.
+ * Standardized console logging and error formatting utilities for Buntic.
  */
 
 export function getErrorMessage(err: unknown): string {
@@ -12,11 +12,11 @@ export function getErrorMessage(err: unknown): string {
   }
 }
 
-export function logWarn(message: string, label = "Bustatic Warning"): void {
+export function logWarn(message: string, label = "Buntic Warning"): void {
   console.warn(`\x1b[33m⚠ [${label}]\x1b[0m ${message}`);
 }
 
-export function logError(message: string, err?: unknown, label = "Bustatic Error"): void {
+export function logError(message: string, err?: unknown, label = "Buntic Error"): void {
   if (err !== undefined) {
     console.error(`\x1b[31m[${label}]\x1b[0m ${message}:`, getErrorMessage(err));
   } else {

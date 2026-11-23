@@ -119,7 +119,7 @@ describe("StorageManager & Persistent ETag Cache", () => {
     expect(output1).toContain("<img src=\"/assets/images/");
     expect(output1).toContain(".webp\"");
 
-    const diskCacheDir = join(tmpDir, ".bustatic/cache/images/s3");
+    const diskCacheDir = join(tmpDir, ".buntic/cache/images/s3");
     expect(existsSync(diskCacheDir)).toBe(true);
 
     // 2nd render: fresh processor instance (simulating next build), same ETag

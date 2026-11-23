@@ -46,7 +46,7 @@ export function initProject(options: InitProjectOptions = {}): InitProjectResult
   const templateName = (options.template || "blank") as TemplateName;
   if (!AVAILABLE_TEMPLATES.includes(templateName)) {
     throw new Error(
-      `[Bustatic] Unknown template "${options.template}". Available templates: ${AVAILABLE_TEMPLATES.join(", ")}.`
+      `[Buntic] Unknown template "${options.template}". Available templates: ${AVAILABLE_TEMPLATES.join(", ")}.`
     );
   }
 
@@ -57,7 +57,7 @@ export function initProject(options: InitProjectOptions = {}): InitProjectResult
   const pkgRoot = getPackageRoot();
   const templateDir = join(pkgRoot, "templates", templateName);
   if (!existsSync(templateDir)) {
-    throw new Error(`[Bustatic] Template directory not found: "${templateDir}"`);
+    throw new Error(`[Buntic] Template directory not found: "${templateDir}"`);
   }
 
   if (existsSync(targetDir) && !force) {
@@ -66,8 +66,8 @@ export function initProject(options: InitProjectOptions = {}): InitProjectResult
     );
     if (existingEntries.length > 0) {
       throw new Error(
-        `[Bustatic] Target directory "${targetDir}" is not empty.\n` +
-          `  Pass a new directory name (e.g. "bustatic init my-site") or use --force to initialize anyway.`
+        `[Buntic] Target directory "${targetDir}" is not empty.\n` +
+          `  Pass a new directory name (e.g. "buntic init my-site") or use --force to initialize anyway.`
       );
     }
   }
@@ -77,9 +77,9 @@ export function initProject(options: InitProjectOptions = {}): InitProjectResult
 
   let skillsDir: string | null = null;
   if (includeSkills) {
-    const srcSkillsDir = join(pkgRoot, "templates", "skills", "bustatic");
+    const srcSkillsDir = join(pkgRoot, "templates", "skills", "buntic");
     if (existsSync(srcSkillsDir)) {
-      skillsDir = join(targetDir, ".agents", "skills", "bustatic");
+      skillsDir = join(targetDir, ".agents", "skills", "buntic");
       filesCopied += copyTemplateDirectory(srcSkillsDir, skillsDir);
     }
   }

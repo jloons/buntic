@@ -62,21 +62,21 @@ export class Builder {
     this.engine.clearUsedWebComponents();
 
     if (!existsSync(this.config.pagesDir)) {
-      throw new Error(`[Bustatic] Pages directory not found at: ${this.config.pagesDir}`);
+      throw new Error(`[Buntic] Pages directory not found at: ${this.config.pagesDir}`);
     }
 
     const globalData = await this.engine.loadData();
     const routes = await resolveAllRoutes(this.config, globalData);
 
     if (routes.length === 0) {
-      console.warn(`[Bustatic] No HTML pages found in: ${this.config.pagesDir}`);
+      console.warn(`[Buntic] No HTML pages found in: ${this.config.pagesDir}`);
       return { success: true, pagesCount: 0, outputFiles: [], durationMs: 0 };
     }
 
     assertNoPublicCollisions(this.config, routes);
     this.prepareEmptyDir(this.config.outDir);
 
-    const stagingDir = join(this.config.root, ".bustatic-staging");
+    const stagingDir = join(this.config.root, ".buntic-staging");
     this.prepareEmptyDir(stagingDir);
 
     try {
@@ -165,7 +165,7 @@ export class Builder {
       for (const log of buildResult.logs) {
         console.error(log);
       }
-      throw new Error("[Bustatic] Bun.build bundling failed.");
+      throw new Error("[Buntic] Bun.build bundling failed.");
     }
 
     return buildResult.outputs.map((o) => o.path);
@@ -241,7 +241,7 @@ export class Builder {
         path.startsWith("/") ||
         path.startsWith("http:") ||
         path.startsWith("https:") ||
-        path.startsWith("_bustatic") ||
+        path.startsWith("_buntic") ||
         path.startsWith("assets/images/") ||
         path.startsWith("assets/seo/")
       ) {

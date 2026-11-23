@@ -1,6 +1,6 @@
 {
-  "name": "bustatic",
-  "version": "0.3.0",
+  "name": "buntic",
+  "version": "0.3.1",
   "description": "Zero-dependency, blazing-fast static site generator native to Bun",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,7 @@
     }
   },
   "bin": {
-    "bustatic": "./dist/cli.js"
+    "buntic": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -25,8 +25,8 @@
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
     "prepublishOnly": "bun run build:pkg && bun test",
-    "dev": "bun ./bin/bustatic.ts dev examples/simple --port 3333",
-    "build": "bun ./bin/bustatic.ts build examples/simple"
+    "dev": "bun ./bin/buntic.ts dev examples/simple --port 3333",
+    "build": "bun ./bin/buntic.ts build examples/simple"
   },
   "keywords": [
     "bun",
@@ -40,11 +40,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jloons/bustatic.git"
+    "url": "git+https://github.com/jloons/buntic.git"
   },
-  "homepage": "https://github.com/jloons/bustatic#readme",
+  "homepage": "https://github.com/jloons/buntic#readme",
   "bugs": {
-    "url": "https://github.com/jloons/bustatic/issues"
+    "url": "https://github.com/jloons/buntic/issues"
   },
   "engines": {
     "bun": ">=1.4.0"

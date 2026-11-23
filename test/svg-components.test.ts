@@ -91,7 +91,7 @@ describe("SVG Components (<component src='...svg' />)", () => {
     const rendered = await engine.renderPage(pageHtml, join(TEST_DIR, "src/pages/index.html"));
 
     expect(rendered).toMatch(/<svg[^>]*class="star-rating (bs-[a-z0-9]+)"/);
-    expect(rendered).toContain('<style id="__bustatic_scoped">');
+    expect(rendered).toContain('<style id="__buntic_scoped">');
     expect(rendered).toContain("fill: gold;");
     expect(rendered).toContain("fill: orange;");
   });
@@ -137,12 +137,12 @@ describe("SVG Components (<component src='...svg' />)", () => {
     // The <template shadowrootmode="open"> must contain the DSD scoped style block for the SVG
     expect(rendered).toContain('<template shadowrootmode="open">');
     const shadowMatch = rendered.match(/<template shadowrootmode="open">([\s\S]*?)<\/template>/)?.[1] || "";
-    expect(shadowMatch).toContain('<style data-bustatic="dsd-scoped">');
+    expect(shadowMatch).toContain('<style data-buntic="dsd-scoped">');
     expect(shadowMatch).toContain("color: blue;");
     expect(shadowMatch).toContain('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="icon');
 
     // The outer <head> should NOT have leaked the SVG's inner DSD style
-    const headScoped = rendered.match(/<style id="__bustatic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
+    const headScoped = rendered.match(/<style id="__buntic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
     expect(headScoped).not.toContain("color: blue;");
   });
 

@@ -1,6 +1,6 @@
 # 📊 Datos, Loaders y Variables de Entorno
 
-Bustatic proporciona una capa de datos reactiva y en memoria para alimentar tanto páginas estáticas como colecciones dinámicas completas.
+Buntic proporciona una capa de datos reactiva y en memoria para alimentar tanto páginas estáticas como colecciones dinámicas completas.
 
 ---
 
@@ -50,7 +50,7 @@ export default async function({ data, env, paginate }) {
 ```
 
 > [!TIP]
-> Bustatic también acepta la exportación nominada `getStaticPaths` como alias para facilitar la transición a desarrolladores familiarizados con otros generadores estáticos.
+> Buntic también acepta la exportación nominada `getStaticPaths` como alias para facilitar la transición a desarrolladores familiarizados con otros generadores estáticos.
 
 ### Parámetros Disponibles en el Contexto del Loader:
 * `data`: Objeto con todos los datos cargados desde la carpeta global `data/`.
@@ -77,7 +77,7 @@ export default async function({ data, env }) {
 }
 ```
 
-En `pages/index.html`, los datos se consumen mediante el espacio de nombres `props` (ej. `<each in="props.featured">`). Tanto los loaders estáticos como los dinámicos se ejecutan en `bustatic build` **y en `bustatic dev`** con invalidación automática de caché al guardar cambios.
+En `pages/index.html`, los datos se consumen mediante el espacio de nombres `props` (ej. `<each in="props.featured">`). Tanto los loaders estáticos como los dinámicos se ejecutan en `buntic build` **y en `buntic dev`** con invalidación automática de caché al guardar cambios.
 
 ---
 
@@ -97,7 +97,7 @@ data/
 // data/site.json
 {
   "title": "Mi Tienda",
-  "author": "Equipo Bustatic",
+  "author": "Equipo Buntic",
   "year": 2026
 }
 ```
@@ -126,14 +126,14 @@ Los datos quedan cargados en memoria y disponibles en plantillas bajo el identif
 
 ## 🔒 Espacios de Nombres Reservados
 
-Para evitar sobreescritura accidental o choques de variables en tus plantillas HTML, Bustatic define los siguientes nombres reservados:
+Para evitar sobreescritura accidental o choques de variables en tus plantillas HTML, Buntic define los siguientes nombres reservados:
 - `params`: Parámetros de la URL actual.
 - `props`: Propiedades inyectadas por el loader de la página.
 - `env`: Variables de entorno públicas.
 - `seo`: Metadatos reservados para motores de búsqueda y redes sociales.
 - `feed`: Datos reservados para generadores RSS y Atom.
 
-Si creas un archivo en `data/` con uno de estos nombres (ej. `data/props.json`), Bustatic emitirá una advertencia preventiva en consola y omitirá el archivo para proteger el contexto de renderizado.
+Si creas un archivo en `data/` con uno de estos nombres (ej. `data/props.json`), Buntic emitirá una advertencia preventiva en consola y omitirá el archivo para proteger el contexto de renderizado.
 
 ---
 

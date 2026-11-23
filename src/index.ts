@@ -1,9 +1,9 @@
-import type { BustaticConfig } from "./types.ts";
+import type { BunticConfig } from "./types.ts";
 import type { BuildOptions, BuildResult } from "./builder/builder.ts";
 import type { DevServerInstance } from "./server/dev.ts";
 
 export type {
-  BustaticConfig,
+  BunticConfig,
   ResolvedConfig,
   PageInfo,
   PageRouteInfo,
@@ -82,7 +82,7 @@ export {
   type InitProjectResult,
 } from "./init.ts";
 export {
-  registerBustaticModuleResolver,
+  registerBunticModuleResolver,
   syncProjectTypes,
 } from "./runtime.ts";
 export { runCLI } from "./cli.ts";
@@ -92,7 +92,7 @@ export { runCLI } from "./cli.ts";
  */
 export async function build(
   dir = ".",
-  overrides: Partial<BustaticConfig> = {},
+  overrides: Partial<BunticConfig> = {},
   options: BuildOptions = {}
 ): Promise<BuildResult> {
   const { resolveConfig } = await import("./config.ts");
@@ -107,7 +107,7 @@ export async function build(
  */
 export async function dev(
   dir = ".",
-  overrides: Partial<BustaticConfig> = {}
+  overrides: Partial<BunticConfig> = {}
 ): Promise<DevServerInstance> {
   const { resolveConfig } = await import("./config.ts");
   const { startDevServer } = await import("./server/dev.ts");

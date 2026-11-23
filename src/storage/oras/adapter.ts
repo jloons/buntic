@@ -3,12 +3,12 @@ import { OrasClient } from "./client.ts";
 import type { OrasStorageOptions } from "./types.ts";
 
 /**
- * Creates a Bustatic storage loader function backed by an OCI Registry / ORAS.
+ * Creates a Buntic storage loader function backed by an OCI Registry / ORAS.
  *
  * @example
  * ```ts
  * // storage/oci.ts
- * import { createOrasStorage } from "bustatic";
+ * import { createOrasStorage } from "buntic";
  *
  * export default createOrasStorage({
  *   hostname: "localhost:5000",
@@ -38,7 +38,7 @@ export function createOrasStorage(options: OrasStorageOptions): StorageLoaderFn 
     // Validate OCI repository name lowercase rule
     if (ref.repository !== ref.repository.toLowerCase()) {
       console.warn(
-        `\x1b[33m⚠ [Bustatic ORAS Warning]\x1b[0m OCI repository names must be lowercase. Converting "${ref.repository}" to "${ref.repository.toLowerCase()}".`
+        `\x1b[33m⚠ [Buntic ORAS Warning]\x1b[0m OCI repository names must be lowercase. Converting "${ref.repository}" to "${ref.repository.toLowerCase()}".`
       );
       ref.repository = ref.repository.toLowerCase();
     }

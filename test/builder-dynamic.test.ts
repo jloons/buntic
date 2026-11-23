@@ -29,7 +29,7 @@ describe("Builder Dynamic Routes & Pagination", () => {
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
       storageDir: join(TEST_DIR, "storage"),
-      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
+      cacheDir: join(TEST_DIR, ".buntic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port: 3000,
       minify: false,
@@ -136,6 +136,6 @@ describe("Builder Dynamic Routes & Pagination", () => {
     expect(cat3Content).toContain("Item E");
 
     // Verify no staging dir leaked
-    expect(existsSync(join(config.root, ".bustatic-staging"))).toBe(false);
+    expect(existsSync(join(config.root, ".buntic-staging"))).toBe(false);
   });
 });

@@ -13,7 +13,7 @@ describe("Root Discovery & Actionable Errors", () => {
 
   test("throws error if explicit directory does not exist", () => {
     expect(() => {
-      findProjectRoot("/tmp/non-existent-bustatic-dir-12345");
+      findProjectRoot("/tmp/non-existent-buntic-dir-12345");
     }).toThrow("Specified project directory does not exist");
   });
 
@@ -25,13 +25,13 @@ describe("Root Discovery & Actionable Errors", () => {
   });
 
   test("throws actionable error with instructions when no root is found", () => {
-    const emptyDir = "/tmp/bustatic-empty-test-dir";
+    const emptyDir = "/tmp/buntic-empty-test-dir";
     mkdirSync(emptyDir, { recursive: true });
 
     try {
       expect(() => {
         findProjectRoot(".", emptyDir);
-      }).toThrow("Could not find a Bustatic project root");
+      }).toThrow("Could not find a Buntic project root");
     } finally {
       rmSync(emptyDir, { recursive: true, force: true });
     }
@@ -67,7 +67,7 @@ describe("VirtualFileSystem (VFS)", () => {
   });
 
   test("caches content in RAM and invalidates on change", async () => {
-    const fixtureDir = "/tmp/bustatic-vfs-cache-test";
+    const fixtureDir = "/tmp/buntic-vfs-cache-test";
     mkdirSync(join(fixtureDir, "components"), { recursive: true });
     const compFile = join(fixtureDir, "components/test.html");
     await Bun.write(compFile, "<div>Initial Version</div>");

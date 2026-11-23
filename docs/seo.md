@@ -1,22 +1,22 @@
 # 🔍 Suite SEO, Metadatos Sociales y Feeds
 
-Bustatic proporciona una suite completa para optimización en motores de búsqueda (SEO) y previsualización en redes sociales (OpenGraph & Twitter Cards), además de generadores para `sitemap.xml`, `robots.txt` y feeds RSS 2.0 y Atom 1.0.
+Buntic proporciona una suite completa para optimización en motores de búsqueda (SEO) y previsualización en redes sociales (OpenGraph & Twitter Cards), además de generadores para `sitemap.xml`, `robots.txt` y feeds RSS 2.0 y Atom 1.0.
 
 ---
 
-## ⚙️ Configuración en `bustatic.config.ts`
+## ⚙️ Configuración en `buntic.config.ts`
 
 Configura la información global de tu sitio:
 
 ```ts
-// bustatic.config.ts
-import { defineConfig } from "bustatic";
+// buntic.config.ts
+import { defineConfig } from "buntic";
 
 export default defineConfig({
   site: {
     url: "https://midominio.com",
     title: "Mi Sitio Web",
-    description: "Sitio estático creado con Bustatic",
+    description: "Sitio estático creado con Buntic",
     defaultOgImage: "/images/og-default.png", // Imagen por defecto para redes
   },
   seo: {
@@ -75,7 +75,7 @@ Durante el build, la etiqueta `<seo>` se elimina del cuerpo y se inyecta en el `
 ```
 
 ### Cascada de Herencia Jerárquica:
-1. **Configuración Base (`site` en `bustatic.config.ts`)**: Provee los valores por defecto globales.
+1. **Configuración Base (`site` en `buntic.config.ts`)**: Provee los valores por defecto globales.
 2. **Layout Base**: Puede incluir un `<seo>` con valores por defecto para una sección completa.
 3. **Página Específica**: Sobreescribe únicamente los campos que declare (ej. si la página solo define `title`, hereda automáticamente la `description` y la `image` del layout o config).
 
@@ -107,7 +107,7 @@ export default async function({ params }) {
 
 ### Tarjetas Sociales Automáticas desde Storage (1200x630 WebP):
 Cuando especificas una imagen con `key` (remota) o ruta local para redes sociales:
-1. Bustatic la redimensiona automáticamente al tamaño estándar de previsualización social (**1200x630 píxeles**).
+1. Buntic la redimensiona automáticamente al tamaño estándar de previsualización social (**1200x630 píxeles**).
 2. La comprime a formato WebP en `dist/assets/seo/[hash].webp`.
 3. Inyecta la **URL absoluta canónica** combinando `site.url` de tu configuración.
 
@@ -118,13 +118,13 @@ Cuando especificas una imagen con `key` (remota) o ruta local para redes sociale
 * **`dist/sitemap.xml`**: Incorpora dinámicamente **todas** las rutas resueltas (tanto páginas estáticas como colecciones masivas generadas por SQLite, Postgres o JSON) con URLs limpias y etiquetas estándar W3C.
 * **`dist/robots.txt`**: Genera un archivo estándar permitiendo la indexación y referenciando el `sitemap.xml`.
   > [!TIP]
-  > Si colocas tu propio archivo en `public/robots.txt`, Bustatic lo respetará y no lo sobreescribirá.
+  > Si colocas tu propio archivo en `public/robots.txt`, Buntic lo respetará y no lo sobreescribirá.
 
 ---
 
 ## 📰 Feeds RSS 2.0 y Atom 1.0
 
-Bustatic puede generar automáticamente `dist/rss.xml` y `dist/atom.xml` a partir de tus rutas dinámicas o estáticas. Solo añade la propiedad `feed` en el retorno de tus loaders:
+Buntic puede generar automáticamente `dist/rss.xml` y `dist/atom.xml` a partir de tus rutas dinámicas o estáticas. Solo añade la propiedad `feed` en el retorno de tus loaders:
 
 ```ts
 return [
@@ -141,4 +141,4 @@ return [
 ];
 ```
 
-Bustatic recolectará todas las entradas, las ordenará cronológicamente (más recientes primero) y generará los feeds listos para ser consumidos por agregadores de noticias y lectores RSS.
+Buntic recolectará todas las entradas, las ordenará cronológicamente (más recientes primero) y generará los feeds listos para ser consumidos por agregadores de noticias y lectores RSS.

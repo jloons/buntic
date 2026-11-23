@@ -5,8 +5,8 @@ export default defineConfig({
   minify: true,
   defaultStorage: process.env.STORAGE_BACKEND || "local",
   site: {
-    url: "https://catalog.bustatic.dev",
-    title: "Bustatic Showcase Catalog",
+    url: "https://catalog.buntic.dev",
+    title: "Buntic Showcase Catalog",
     description: "Catálogo de demostración integrado con OCI Registry, S3, PostgreSQL y Redis",
   },
   seo: {

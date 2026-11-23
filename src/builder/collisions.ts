@@ -49,14 +49,14 @@ export function detectPublicCollisions(
       collisions.push({
         type: "reserved-dir",
         publicPath: relative(config.root, join(config.publicDir, relFile)),
-        conflictWith: "assets/images/ (Reserved for Bustatic <photo> image optimization)",
+        conflictWith: "assets/images/ (Reserved for Buntic <photo> image optimization)",
         outputPath: relFile,
       });
     } else if (relFile.startsWith("assets/seo/") || relFile === "assets/seo") {
       collisions.push({
         type: "reserved-dir",
         publicPath: relative(config.root, join(config.publicDir, relFile)),
-        conflictWith: "assets/seo/ (Reserved for Bustatic <seo> social cards)",
+        conflictWith: "assets/seo/ (Reserved for Buntic <seo> social cards)",
         outputPath: relFile,
       });
     }
@@ -82,7 +82,7 @@ export function assertNoPublicCollisions(
     .join("\n");
 
   throw new Error(
-    `[Bustatic Collision Error]: Conflict detected between public/ files and build output:\n` +
+    `[Buntic Collision Error]: Conflict detected between public/ files and build output:\n` +
       details +
       `\n\n👉 Action: Remove or rename conflicting files in "public/" or adjust page routes in "pages/".`
   );

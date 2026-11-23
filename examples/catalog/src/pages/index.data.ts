@@ -6,7 +6,7 @@ export default async function({ data }: { data: any }) {
       featured,
     },
     seo: {
-      title: "Inicio | Bustatic Catalog",
+      title: "Inicio | Buntic Catalog",
       description: "Catálogo de demostración integrado con OCI Registry, S3, PostgreSQL y Redis",
     },
   };

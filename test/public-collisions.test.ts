@@ -93,14 +93,14 @@ describe("Public Collisions Detection & SEO Respect", () => {
     expect(collisions[0].outputPath).toBe("assets/images/custom.webp");
   });
 
-  test("assertNoPublicCollisions throws an actionable [Bustatic Collision Error]", async () => {
+  test("assertNoPublicCollisions throws an actionable [Buntic Collision Error]", async () => {
     const config = await resolveConfig(tmpDir);
 
     await Bun.write(join(tmpDir, "public/index.html"), "<h1>Static Public Index</h1>");
 
     expect(() => {
       assertNoPublicCollisions(config, mockRoutes);
-    }).toThrow(/\[Bustatic Collision Error\]/);
+    }).toThrow(/\[Buntic Collision Error\]/);
 
     try {
       assertNoPublicCollisions(config, mockRoutes);
@@ -118,7 +118,7 @@ describe("Public Collisions Detection & SEO Respect", () => {
     const config = await resolveConfig(tmpDir);
     const builder = new Builder(config);
 
-    expect(builder.build()).rejects.toThrow(/\[Bustatic Collision Error\]/);
+    expect(builder.build()).rejects.toThrow(/\[Buntic Collision Error\]/);
   });
 
   test("SEO generators respect custom sitemap.xml, rss.xml and atom.xml in public/", async () => {

@@ -13,13 +13,13 @@ import { getErrorMessage } from "../utils/logger.ts";
 import { isPathInside } from "../utils/paths.ts";
 
 export const LIVE_RELOAD_SCRIPT = `
-<script id="__bustatic_live_reload">
+<script id="__buntic_live_reload">
   (() => {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(\`\${protocol}//\${location.host}/_bustatic/ws\`);
+    const ws = new WebSocket(\`\${protocol}//\${location.host}/_buntic/ws\`);
     ws.onmessage = (event) => {
       if (event.data === 'reload') {
-        console.log('[bustatic] Change detected. Reloading...');
+        console.log('[buntic] Change detected. Reloading...');
         location.reload();
       }
     };
@@ -204,7 +204,7 @@ export function renderNotFoundResponse(pathname: string, routes: PageRouteInfo[]
     <!doctype html>
     <html>
     <head>
-      <title>404 - Not Found | Bustatic Dev</title>
+      <title>404 - Not Found | Buntic Dev</title>
       <style>
         body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 3rem; }
         .card { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 2rem; border-radius: 12px; border: 1px solid #334155; }

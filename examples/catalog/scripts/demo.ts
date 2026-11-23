@@ -64,15 +64,15 @@ async function waitForPort(port: number, timeoutMs = 20000): Promise<boolean> {
 }
 
 async function startContainers(dataBackend: string, storageBackend: string) {
-  console.log("🐳 [Podman] Starting demo containers (prefix: bustatic-demo-*)...");
+  console.log("🐳 [Podman] Starting demo containers (prefix: buntic-demo-*)...");
 
   // 1. PostgreSQL
   if (dataBackend === "all" || dataBackend === "postgres") {
-    runPodman(["rm", "-f", "bustatic-demo-postgres"]);
-    console.log("  Starting bustatic-demo-postgres on port 5432...");
+    runPodman(["rm", "-f", "buntic-demo-postgres"]);
+    console.log("  Starting buntic-demo-postgres on port 5432...");
     const res = runPodman([
       "run", "-d",
-      "--name", "bustatic-demo-postgres",
+      "--name", "buntic-demo-postgres",
       "-p", "5432:5432",
       "-e", "POSTGRES_PASSWORD=postgres",
       "-e", "POSTGRES_DB=postgres",
@@ -83,11 +83,11 @@ async function startContainers(dataBackend: string, storageBackend: string) {
 
   // 2. Redis
   if (dataBackend === "all" || dataBackend === "redis") {
-    runPodman(["rm", "-f", "bustatic-demo-redis"]);
-    console.log("  Starting bustatic-demo-redis on port 6379...");
+    runPodman(["rm", "-f", "buntic-demo-redis"]);
+    console.log("  Starting buntic-demo-redis on port 6379...");
     const res = runPodman([
       "run", "-d",
-      "--name", "bustatic-demo-redis",
+      "--name", "buntic-demo-redis",
       "-p", "6379:6379",
       "docker.io/library/redis:alpine",
     ]);
@@ -96,11 +96,11 @@ async function startContainers(dataBackend: string, storageBackend: string) {
 
   // 3. OCI Registry
   if (storageBackend === "all" || storageBackend === "oci") {
-    runPodman(["rm", "-f", "bustatic-demo-registry"]);
-    console.log("  Starting bustatic-demo-registry on port 5000...");
+    runPodman(["rm", "-f", "buntic-demo-registry"]);
+    console.log("  Starting buntic-demo-registry on port 5000...");
     const res = runPodman([
       "run", "-d",
-      "--name", "bustatic-demo-registry",
+      "--name", "buntic-demo-registry",
       "-p", "5000:5000",
       "docker.io/library/registry:latest",
     ]);
@@ -109,11 +109,11 @@ async function startContainers(dataBackend: string, storageBackend: string) {
 
   // 4. S3 (local-s3)
   if (storageBackend === "all" || storageBackend === "s3") {
-    runPodman(["rm", "-f", "bustatic-demo-s3"]);
-    console.log("  Starting bustatic-demo-s3 on port 9000...");
+    runPodman(["rm", "-f", "buntic-demo-s3"]);
+    console.log("  Starting buntic-demo-s3 on port 9000...");
     const res = runPodman([
       "run", "-d",
-      "--name", "bustatic-demo-s3",
+      "--name", "buntic-demo-s3",
       "-p", "9000:9000",
       "-e", "S3_BUCKETS=catalog",
       "-e", "S3_ACCOUNT_ADMIN=testkey:testsecret",
@@ -147,12 +147,12 @@ async function startContainers(dataBackend: string, storageBackend: string) {
 }
 
 function stopContainers() {
-  console.log("🧹 [Podman] Stopping and removing containers matching 'bustatic-demo-*'...");
-  const psRes = runPodman(["ps", "-a", "--filter", "name=bustatic-demo-", "--format", "{{.Names}}"]);
+  console.log("🧹 [Podman] Stopping and removing containers matching 'buntic-demo-*'...");
+  const psRes = runPodman(["ps", "-a", "--filter", "name=buntic-demo-", "--format", "{{.Names}}"]);
   const names = psRes.output.trim().split("\n").filter(Boolean);
 
   if (names.length === 0) {
-    console.log("  No active bustatic-demo containers found.");
+    console.log("  No active buntic-demo containers found.");
     return;
   }
 
@@ -177,7 +177,7 @@ async function runSeed(dataBackend: string, storageBackend: string) {
 
 async function runBuild(dataBackend: string, storageBackend: string) {
   console.log(`\n🔨 [Build] Compiling catalog with DATA_BACKEND=${dataBackend} STORAGE_BACKEND=${storageBackend}...`);
-  const cliScript = join(catalogDir, "..", "..", "bin", "bustatic.ts");
+  const cliScript = join(catalogDir, "..", "..", "bin", "buntic.ts");
 
   const env = {
     ...process.env,

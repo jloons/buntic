@@ -1,35 +1,35 @@
 ---
-name: bustatic
+name: buntic
 description: >-
   Guía experta para crear, desarrollar, compilar y mantener sitios web estáticos utilizando
-  Bustatic, el generador de sitios estáticos de cero dependencias externas nativo para Bun.
+  Buntic, el generador de sitios estáticos de cero dependencias externas nativo para Bun.
   Activar cuando el usuario pida crear o modificar páginas, layouts, componentes, loaders de datos
   dinámicos (.data.ts), optimización de imágenes (<photo>), metadatos SEO (<seo>), Web Components,
-  estilos scoped o loaders de almacenamiento (storage/*.ts) en un proyecto Bustatic.
+  estilos scoped o loaders de almacenamiento (storage/*.ts) en un proyecto Buntic.
 ---
 
-# ⚡ Skill: Desarrollo de Sitios con Bustatic
+# ⚡ Skill: Desarrollo de Sitios con Buntic
 
-Esta skill proporciona las directrices maestras, sintaxis declarativa y reglas de arquitectura para desarrollar sitios web estáticos de máximo rendimiento con **Bustatic**.
+Esta skill proporciona las directrices maestras, sintaxis declarativa y reglas de arquitectura para desarrollar sitios web estáticos de máximo rendimiento con **Buntic**.
 
 ---
 
-## 🛑 Reglas de Oro de Bustatic
+## 🛑 Reglas de Oro de Buntic
 
-1. **Cero Dependencias Externas ni `package.json` obligatorio:** No instales paquetes de npm (`sharp`, `@aws-sdk`, `pg`, `ioredis`, `better-sqlite3`, etc.). Utiliza exclusivamente las APIs nativas de Bun (`>=1.4.0`: `Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, `RedisClient`, `Bun.build`) y los módulos integrados de Bustatic (`defineConfig`, `createOrasStorage`, `OrasClient`). Los proyectos creados con `bustatic init` funcionan directamente con el CLI global y solo necesitan `tsconfig.json` (los tipos se sincronizan automáticamente en `.bustatic/types/`).
+1. **Cero Dependencias Externas ni `package.json` obligatorio:** No instales paquetes de npm (`sharp`, `@aws-sdk`, `pg`, `ioredis`, `better-sqlite3`, etc.). Utiliza exclusivamente las APIs nativas de Bun (`>=1.4.0`: `Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, `RedisClient`, `Bun.build`) y los módulos integrados de Buntic (`defineConfig`, `createOrasStorage`, `OrasClient`). Los proyectos creados con `buntic init` funcionan directamente con el CLI global y solo necesitan `tsconfig.json` (los tipos se sincronizan automáticamente en `.buntic/types/`).
 2. **URLs Limpias por Archivo:** Cada archivo en `pages/` genera una URL limpia sin extensión `.html` (ej. `pages/acerca.html` &rarr; `/acerca` &rarr; `dist/acerca/index.html`).
 3. **Usa `&` para estilizar el elemento raíz en Scoped CSS:** Tanto en `<style scoped>` como en archivos `.css` hermanos (`.html` + `.css`), todo selector **sin `&`** (o `:host`) se compila como descendiente (`.bs-xxxx .clase`) y **NO aplica al elemento raíz**. Para estilizar la raíz o sus estados escribe siempre `& { ... }`, `&:hover { ... }`, `&:hover .hijo { ... }` o `&.activo { ... }` — nunca `.clase-raiz { ... }`.
 4. **Regla 1:1 de Web Components:** Un Web Component por archivo (`.ts` o `.js`). El nombre del archivo debe coincidir de forma idéntica con el tag Custom Element (`counter-button.ts` &rarr; `<counter-button>`). Pueden anidarse entre sí con expansión recursiva de Declarative Shadow DOM (DSD).
 5. **Espacios de Nombres Reservados y Acceso a Loaders:** `params`, `props`, `env`, `seo`, `feed`. No los uses como identificadores en `data/*.json`. En plantillas HTML, los datos devueltos por un loader `.data.ts` (estático o dinámico) se consumen siempre bajo `props.*` (ej. `{{ props.product.name }}`, `<each in="props.featured">`, `{{ props.page.currentPage }}`) y los parámetros de ruta bajo `params.*`.
 6. **No uses `<img>` crudo cuando optimices ni `<photo>` para SVG:** Usa `<photo>` exclusivamente para imágenes rasterizadas (compresión WebP, dimensiones anti-CLS automáticas y `srcset`). Para gráficos vectoriales SVG usa `<component src="...svg" />` cuando necesites estilizarlos inline (colores vía `currentColor`, clases o accesibilidad) o `<img src="/icono.svg">` apuntando a `public/` para SVGs estáticos externos.
-7. **No dupliques metadatos en `<head>`:** Usa la etiqueta `<seo>` en la página o el objeto `seo` en el loader hermano para que Bustatic genere los metatags OpenGraph, Twitter y canonical consolidados.
+7. **No dupliques metadatos en `<head>`:** Usa la etiqueta `<seo>` en la página o el objeto `seo` en el loader hermano para que Buntic genere los metatags OpenGraph, Twitter y canonical consolidados.
 8. **Tokens de color en variables CSS:** Centraliza colores en un archivo dedicado (ej. `src/styles/colors.css` importado con `@import "./colors.css";` desde `src/styles/main.css`) y evita colores hardcodeados en componentes y páginas.
 
 ---
 
 ## 📁 Estructura Estándar de un Proyecto
 
-Bustatic detecta automáticamente si el proyecto utiliza la estructura moderna `src/` (recomendada) o una estructura plana en la raíz del proyecto:
+Buntic detecta automáticamente si el proyecto utiliza la estructura moderna `src/` (recomendada) o una estructura plana en la raíz del proyecto:
 
 ```text
 mi-proyecto/
@@ -66,7 +66,7 @@ mi-proyecto/
 ├── docs/                 # Documentación técnica del proyecto (opcional)
 ├── scripts/              # Scripts de mantenimiento o utilidades (opcional)
 ├── dist/                 # Directorio de salida generado por la compilación
-└── bustatic.config.ts    # Configuración del sitio (site, seo, feeds)
+└── buntic.config.ts    # Configuración del sitio (site, seo, feeds)
 ```
 
 > [!TIP]
@@ -196,7 +196,7 @@ Inyecta en `<head>` el `<title>`, `<link rel="canonical">`, OpenGraph y Twitter 
 ## 📊 Catálogo de Loaders de Datos (`.data.ts`)
 
 ### Loader Co-ubicado para Página Estática (`pages/index.data.ts`)
-Se ejecuta tanto en `bustatic dev` (con recarga en vivo al editar) como en `bustatic build`:
+Se ejecuta tanto en `buntic dev` (con recarga en vivo al editar) como en `buntic build`:
 ```ts
 export default async function({ data, env }) {
   const products = data.products || [];
@@ -262,7 +262,7 @@ En `[page].html`, consume `props.page`: `<each in="props.page.data">`, `{{ props
 ### Opción A: OCI Registry / ORAS (`storage/oci.ts`, Recomendado)
 Cliente nativo sin dependencias para Docker Registry v2/v3 y OCI Distribution con soporte de tags e inmutabilidad por digest SHA-256:
 ```ts
-import { createOrasStorage } from "bustatic";
+import { createOrasStorage } from "buntic";
 
 export default createOrasStorage({
   hostname: process.env.OCI_REGISTRY_HOST || "localhost:5000",
@@ -297,14 +297,14 @@ export default async function getAsset(key: string) {
   };
 }
 ```
-Si existen múltiples loaders en `storage/`, define `defaultStorage` en `bustatic.config.ts` o usa el atributo `storage="oci"` / `storage="s3"` en `<photo>`.
+Si existen múltiples loaders en `storage/`, define `defaultStorage` en `buntic.config.ts` o usa el atributo `storage="oci"` / `storage="s3"` en `<photo>`.
 
 ---
 
-## ⚙️ Archivo de Configuración (`bustatic.config.ts`)
+## ⚙️ Archivo de Configuración (`buntic.config.ts`)
 
 ```ts
-import { defineConfig } from "bustatic";
+import { defineConfig } from "buntic";
 
 export default defineConfig({
   port: 3000,
@@ -314,7 +314,7 @@ export default defineConfig({
   site: {
     url: "https://misitio.com",
     title: "Mi Proyecto",
-    description: "Sitio web generado con Bustatic",
+    description: "Sitio web generado con Buntic",
   },
   seo: {
     sitemap: true, // dist/sitemap.xml
@@ -333,12 +333,12 @@ export default defineConfig({
 
 | Comando | Descripción |
 | :--- | :--- |
-| `bustatic init [dir]` | Inicializa un nuevo proyecto (`--template blank\|simple`, por defecto `blank`, sin `package.json`) |
-| `bustatic dev [dir]` | Servidor de desarrollo en `http://localhost:3000` con live-reload |
-| `bustatic dev --clean-cache` | Servidor de desarrollo purgando caché previo de imágenes |
-| `bustatic build [dir]` | Compila todo el sitio para producción en `dist/` |
-| `bustatic build --clean-cache` | Compila purgando caché inmutable previo |
-| `bustatic clean [dir]` | Elimina `dist/` y `.bustatic/cache/` |
+| `buntic init [dir]` | Inicializa un nuevo proyecto (`--template blank\|simple`, por defecto `blank`, sin `package.json`) |
+| `buntic dev [dir]` | Servidor de desarrollo en `http://localhost:3000` con live-reload |
+| `buntic dev --clean-cache` | Servidor de desarrollo purgando caché previo de imágenes |
+| `buntic build [dir]` | Compila todo el sitio para producción en `dist/` |
+| `buntic build --clean-cache` | Compila purgando caché inmutable previo |
+| `buntic clean [dir]` | Elimina `dist/` y `.buntic/cache/` |
 | `bun test` | Ejecuta la suite de pruebas del proyecto |
 
 ---
@@ -346,14 +346,14 @@ export default defineConfig({
 ## 📖 Referencias Detalladas
 
 Para consultas profundas sobre subsistemas específicos, revisa la documentación oficial:
-- 📑 [Plantillas y Sintaxis](https://github.com/jloons/bustatic/blob/main/docs/templating.md)
-- 🎨 [Estilos Scoped y Grafo CSS](https://github.com/jloons/bustatic/blob/main/docs/scoped-css.md)
-- 🧩 [Web Components y Shadow DOM](https://github.com/jloons/bustatic/blob/main/docs/web-components.md)
-- 🗺️ [Enrutamiento y Rutas Dinámicas](https://github.com/jloons/bustatic/blob/main/docs/routing-and-pages.md)
-- 📊 [Datos, Loaders y Entorno](https://github.com/jloons/bustatic/blob/main/docs/data-and-loaders.md)
-- 🗄️ [Motores SQL y Redis Nativos](https://github.com/jloons/bustatic/blob/main/docs/databases-sql.md)
-- 📑 [Paginación Automática](https://github.com/jloons/bustatic/blob/main/docs/pagination.md)
-- 🖼️ [Optimización de Imágenes](https://github.com/jloons/bustatic/blob/main/docs/assets-and-images.md)
-- 🗄️ [Storage Loaders (OCI Registry / ORAS y S3)](https://github.com/jloons/bustatic/blob/main/docs/storage-loaders.md)
-- 🔍 [Suite SEO y Feeds](https://github.com/jloons/bustatic/blob/main/docs/seo.md)
-- ⌨️ [Referencia del CLI](https://github.com/jloons/bustatic/blob/main/docs/cli.md)
+- 📑 [Plantillas y Sintaxis](https://github.com/jloons/buntic/blob/main/docs/templating.md)
+- 🎨 [Estilos Scoped y Grafo CSS](https://github.com/jloons/buntic/blob/main/docs/scoped-css.md)
+- 🧩 [Web Components y Shadow DOM](https://github.com/jloons/buntic/blob/main/docs/web-components.md)
+- 🗺️ [Enrutamiento y Rutas Dinámicas](https://github.com/jloons/buntic/blob/main/docs/routing-and-pages.md)
+- 📊 [Datos, Loaders y Entorno](https://github.com/jloons/buntic/blob/main/docs/data-and-loaders.md)
+- 🗄️ [Motores SQL y Redis Nativos](https://github.com/jloons/buntic/blob/main/docs/databases-sql.md)
+- 📑 [Paginación Automática](https://github.com/jloons/buntic/blob/main/docs/pagination.md)
+- 🖼️ [Optimización de Imágenes](https://github.com/jloons/buntic/blob/main/docs/assets-and-images.md)
+- 🗄️ [Storage Loaders (OCI Registry / ORAS y S3)](https://github.com/jloons/buntic/blob/main/docs/storage-loaders.md)
+- 🔍 [Suite SEO y Feeds](https://github.com/jloons/buntic/blob/main/docs/seo.md)
+- ⌨️ [Referencia del CLI](https://github.com/jloons/buntic/blob/main/docs/cli.md)

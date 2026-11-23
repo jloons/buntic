@@ -74,7 +74,7 @@ export class TemplateEngine {
       const relConflicts = globalRoot.conflicts.map((c) => relative(this.config.root, c));
       logWarn(
         `Multiple orphan global CSS roots detected: ${relConflicts.map((c) => `"${c}"`).join(", ")}. Please link them via @import in a single root file or co-locate them with a component/page.`,
-        "Bustatic Conflict Warning"
+        "Buntic Conflict Warning"
       );
     }
 
@@ -162,7 +162,7 @@ export class TemplateEngine {
 
     const layoutFilePath = this.resolveFilePath(layoutRawSrc, currentFile, this.config.layoutsDir);
     if (!this.vfs.hasFile(layoutFilePath) && !existsSync(layoutFilePath)) {
-      throw new Error(`[Bustatic] Layout not found: "${layoutRawSrc}" at ${layoutFilePath}`);
+      throw new Error(`[Buntic] Layout not found: "${layoutRawSrc}" at ${layoutFilePath}`);
     }
 
     const layoutTemplate = await this.vfs.readText(layoutFilePath);
@@ -221,7 +221,7 @@ export class TemplateEngine {
     depth = 0
   ): Promise<string> {
     if (depth > 10) {
-      console.warn("[Bustatic] Maximum <each> recursion depth (10) reached.");
+      console.warn("[Buntic] Maximum <each> recursion depth (10) reached.");
       return html;
     }
 
@@ -243,17 +243,17 @@ export class TemplateEngine {
       if (attrs.src) {
         const filePath = this.resolveFilePath(attrs.src, currentFile, this.config.dataDir);
         if (!this.vfs.hasFile(filePath) && !existsSync(filePath)) {
-          throw new Error(`[Bustatic] <each> data file not found: "${attrs.src}" at ${filePath}`);
+          throw new Error(`[Buntic] <each> data file not found: "${attrs.src}" at ${filePath}`);
         }
         items = await this.vfs.readJson(filePath);
       } else if (attrs.in) {
         items = getNestedValue(context, attrs.in);
       } else {
-        throw new Error(`[Bustatic] <each> tag requires either a "src" or "in" attribute.`);
+        throw new Error(`[Buntic] <each> tag requires either a "src" or "in" attribute.`);
       }
 
       if (!Array.isArray(items)) {
-        throw new Error(`[Bustatic] <each> source "${attrs.src || attrs.in}" did not resolve to an array.`);
+        throw new Error(`[Buntic] <each> source "${attrs.src || attrs.in}" did not resolve to an array.`);
       }
 
       const renderedItems: string[] = [];
@@ -293,7 +293,7 @@ export class TemplateEngine {
     depth = 0
   ): Promise<string> {
     if (depth > 10) {
-      console.warn("[Bustatic] Maximum component recursion depth (10) reached. Check for circular component includes.");
+      console.warn("[Buntic] Maximum component recursion depth (10) reached. Check for circular component includes.");
       return html;
     }
 
@@ -324,7 +324,7 @@ export class TemplateEngine {
     for (const item of matches) {
       const compPath = this.resolveFilePath(item.src, currentFile, this.config.componentsDir);
       if (!this.vfs.hasFile(compPath) && !existsSync(compPath)) {
-        throw new Error(`[Bustatic] Component not found: "${item.src}" at ${compPath}`);
+        throw new Error(`[Buntic] Component not found: "${item.src}" at ${compPath}`);
       }
 
       const ext = extname(compPath).toLowerCase();
@@ -406,7 +406,7 @@ export class TemplateEngine {
 
     if (!tag) {
       throw new Error(
-        `[Bustatic] Could not determine Custom Element tag name for Web Component file "${rawSrc}". ` +
+        `[Buntic] Could not determine Custom Element tag name for Web Component file "${rawSrc}". ` +
           `Ensure the filename follows kebab-case (e.g. "my-element.ts") or PascalCase (e.g. "MyElement.ts").`
       );
     }

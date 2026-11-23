@@ -1,6 +1,6 @@
 # 🎨 Estilos Scoped y Grafo de Dependencias CSS
 
-Bustatic cuenta con un procesador de CSS nativo que proporciona **estilos encapsulados (*Scoped CSS*)**, deduplicación automática y resolución de grafos de dependencias `@import`, sin requerir preprocesadores externos como PostCSS o Sass.
+Buntic cuenta con un procesador de CSS nativo que proporciona **estilos encapsulados (*Scoped CSS*)**, deduplicación automática y resolución de grafos de dependencias `@import`, sin requerir preprocesadores externos como PostCSS o Sass.
 
 ---
 
@@ -37,7 +37,7 @@ Puedes colocar un bloque `<style scoped>` dentro de cualquier elemento contenedo
 </div>
 ```
 
-### ¿Cómo lo transforma Bustatic?
+### ¿Cómo lo transforma Buntic?
 1. Genera una clase hash determinista con prefijo `bs-` (ej. `bs-a8f3b1`).
 2. Agrega automáticamente esta clase al elemento contenedor padre: `<div class="card bs-a8f3b1">`.
 3. Transforma los selectores para encapsular el estilo:
@@ -63,7 +63,7 @@ En un bloque `<style scoped>` o archivo `.css` hermano, la clase generada (`bs-.
 
 > [!IMPORTANT]
 > **No uses la clase o etiqueta del propio elemento raíz sin `&`.**
-> Si el elemento raíz es `<article class="card">` y escribes `.card { ... }` o `.card:hover .card-media img { ... }`, Bustatic lo compilará como `.bs-a8f3b1 .card ...` (buscando `.card` **dentro** de sí mismo, fuera de su alcance) y la regla **no aplicará**. Usa siempre `& { ... }`, `&:hover { ... }` o `&:hover .card-media img { ... }`.
+> Si el elemento raíz es `<article class="card">` y escribes `.card { ... }` o `.card:hover .card-media img { ... }`, Buntic lo compilará como `.bs-a8f3b1 .card ...` (buscando `.card` **dentro** de sí mismo, fuera de su alcance) y la regla **no aplicará**. Usa siempre `& { ... }`, `&:hover { ... }` o `&:hover .card-media img { ... }`.
 
 ---
 
@@ -88,32 +88,32 @@ src/
 ```
 
 ### Regla del Elemento Raíz Único:
-* **Componentes (`components/*.html`):** Si el componente tiene un único elemento contenedor raíz (ej. `<article class="card">...</article>`), Bustatic adjunta el CSS hermano como scoped a ese contenedor.
+* **Componentes (`components/*.html`):** Si el componente tiene un único elemento contenedor raíz (ej. `<article class="card">...</article>`), Buntic adjunta el CSS hermano como scoped a ese contenedor.
 * **Iconos SVG (`icons/*.svg`):** El elemento raíz `<svg>` recibe automáticamente el ámbito y las reglas scoped.
 * **Uso en Web Components con DSD:** Si un componente HTML o SVG con estilos scoped se utiliza dentro del template de un Web Component (ej. `tag-badge.html`), sus estilos compilados se inyectan dentro de `<template shadowrootmode="open">`, garantizando aislamiento y visualización correcta sin depender de estilos en `<head>`.
 * **Páginas con `<layout>` (`pages/*.html`):** `<layout src="...">...</layout>` actúa como raíz única; el CSS hermano (así como un `<style scoped>` en el primer nivel de `<layout>`) se inyecta en el `<slot>` por defecto y se vincula automáticamente al contenedor padre del layout (por ejemplo `<main class="bs-...">`).
-* **Páginas independientes con `<!doctype html>`:** Bustatic omite el prólogo `<!doctype html>` y los comentarios HTML, detectando `<html>` como elemento raíz único y aplicando la clase `bs-...` a `<html>`.
-* **Múltiples Raíces (Fragmentos):** Si la plantilla contiene múltiples elementos en el nivel superior (ej. `<p>Uno</p><p>Dos</p>`), Bustatic no puede inferir un único contenedor padre y emitirá una advertencia preventiva `⚠ [Bustatic Warning]`.
+* **Páginas independientes con `<!doctype html>`:** Buntic omite el prólogo `<!doctype html>` y los comentarios HTML, detectando `<html>` como elemento raíz único y aplicando la clase `bs-...` a `<html>`.
+* **Múltiples Raíces (Fragmentos):** Si la plantilla contiene múltiples elementos en el nivel superior (ej. `<p>Uno</p><p>Dos</p>`), Buntic no puede inferir un único contenedor padre y emitirá una advertencia preventiva `⚠ [Buntic Warning]`.
 * **Orden de cascada:** Si un mismo archivo tiene un `.css` hermano **y** un bloque `<style scoped>` inline, el CSS hermano se inserta primero y el bloque inline después, permitiendo que `<style scoped>` sobrescriba reglas del archivo hermano.
 
 ---
 
 ## 🌲 3. Grafo de Dependencias CSS y Resolución de `@import`
 
-Bustatic analiza todas las hojas de estilo del proyecto para construir un **Grafo Dirigido Acíclico (DAG)** de dependencias:
+Buntic analiza todas las hojas de estilo del proyecto para construir un **Grafo Dirigido Acíclico (DAG)** de dependencias:
 
 * **Aplanamiento Recursivo:** Los `@import` locales (ej. `@import "./variables.css";`) se combinan recursivamente en el orden de cascada correcto.
-* **Detección de Ciclos:** Si el archivo A importa B y B importa A, Bustatic detecta el ciclo y detiene la recursión con seguridad sin bloquear el build.
+* **Detección de Ciclos:** Si el archivo A importa B y B importa A, Buntic detecta el ciclo y detiene la recursión con seguridad sin bloquear el build.
 * **Imports Externos:** Declaraciones como `@import url("https://fonts.googleapis.com/...");` se preservan intactas en la cabecera.
 
 ---
 
 ## ⚙️ 4. Estrategias de Emisión (`cssStrategy`)
 
-Configura la estrategia de entrega de CSS en `bustatic.config.ts`:
+Configura la estrategia de entrega de CSS en `buntic.config.ts`:
 
 ```ts
-import { defineConfig } from "bustatic";
+import { defineConfig } from "buntic";
 
 export default defineConfig({
   // "inline" (por defecto) o "external"

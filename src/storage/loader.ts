@@ -90,20 +90,20 @@ export class StorageManager {
     if (!targetStorage) {
       if (available.length === 0) {
         throw new Error(
-          `[Bustatic Error] No storage loaders found in "${this.config.storageDir}".\n` +
+          `[Buntic Error] No storage loaders found in "${this.config.storageDir}".\n` +
           `👉 Create a storage loader (e.g. "${join(this.config.storageDir, "s3.ts")}") to handle key "${key}".`
         );
       }
       throw new Error(
-        `[Bustatic Error] Multiple storage loaders detected ([${available.join(", ")}]), but no storage name was specified for key "${key}".\n` +
-        `👉 Specify storage="..." in your tag or set "defaultStorage" in bustatic.config.ts.`
+        `[Buntic Error] Multiple storage loaders detected ([${available.join(", ")}]), but no storage name was specified for key "${key}".\n` +
+        `👉 Specify storage="..." in your tag or set "defaultStorage" in buntic.config.ts.`
       );
     }
 
     const storage = this.storages.get(targetStorage);
     if (!storage) {
       throw new Error(
-        `[Bustatic Error] Storage loader "${targetStorage}" not found in "${this.config.storageDir}".\n` +
+        `[Buntic Error] Storage loader "${targetStorage}" not found in "${this.config.storageDir}".\n` +
         `  Available storages: [${available.join(", ")}]`
       );
     }
@@ -125,7 +125,7 @@ async function normalizeStorageResult(
 ): Promise<StorageAssetResult> {
   if (!result) {
     throw new Error(
-      `[Bustatic Error] Storage loader "${storageName}" returned null/undefined for key "${key}".`
+      `[Buntic Error] Storage loader "${storageName}" returned null/undefined for key "${key}".`
     );
   }
 
@@ -202,7 +202,7 @@ async function normalizeStorageResult(
   }
 
   throw new Error(
-    `[Bustatic Error] Unsupported return type from storage loader "${storageName}" for key "${key}".\n` +
+    `[Buntic Error] Unsupported return type from storage loader "${storageName}" for key "${key}".\n` +
     `  Expected Uint8Array, ArrayBuffer, Response, BunFile or { bytes, etag?, contentType? }. Received: ${typeof result}`
   );
 }

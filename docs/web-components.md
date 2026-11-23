@@ -1,6 +1,6 @@
 # 🧩 Web Components Nativos y Declarative Shadow DOM (DSD)
 
-Bustatic aprovecha el estándar de **Web Components nativos del navegador** y el soporte para **Declarative Shadow DOM (DSD)** para ofrecer interactividad del lado del cliente con cero parpadeo (FOUC), máximo rendimiento y sin frameworks pesados de JavaScript.
+Buntic aprovecha el estándar de **Web Components nativos del navegador** y el soporte para **Declarative Shadow DOM (DSD)** para ofrecer interactividad del lado del cliente con cero parpadeo (FOUC), máximo rendimiento y sin frameworks pesados de JavaScript.
 
 ---
 
@@ -13,7 +13,7 @@ Usa el tag del componente directamente en cualquier página o componente:
 ```html
 <counter-button id="mi-contador"></counter-button>
 ```
-*Bustatic detecta automáticamente la etiqueta, localiza su archivo TypeScript/JavaScript correspondiente y auto-empaqueta e inyecta el script sin requerir etiquetas `<script>` manuales.*
+*Buntic detecta automáticamente la etiqueta, localiza su archivo TypeScript/JavaScript correspondiente y auto-empaqueta e inyecta el script sin requerir etiquetas `<script>` manuales.*
 
 ### Opción B: Alias `<component src="...">` (Navegación Rápida en IDE)
 Para habilitar navegación **`Ctrl + Click`** y autocompletado nativo en Visual Studio Code:
@@ -37,7 +37,7 @@ Para habilitar navegación **`Ctrl + Click`** y autocompletado nativo en Visual 
 
 ## 🎯 La Tríada de Web Components con Declarative Shadow DOM
 
-Bustatic implementa **Declarative Shadow DOM (`<template shadowrootmode="open">`)** de forma nativa. Esto te permite separar limpiamente tu lógica, estructura y estilos en tres archivos co-ubicados:
+Buntic implementa **Declarative Shadow DOM (`<template shadowrootmode="open">`)** de forma nativa. Esto te permite separar limpiamente tu lógica, estructura y estilos en tres archivos co-ubicados:
 
 ```text
 components/
@@ -96,7 +96,7 @@ class CounterButton extends HTMLElement {
 customElements.define("counter-button", CounterButton);
 ```
 
-### HTML Final Emitido por Bustatic (¡Cero FOUC!):
+### HTML Final Emitido por Buntic (¡Cero FOUC!):
 ```html
 <counter-button id="mi-contador">
   <template shadowrootmode="open">
@@ -113,10 +113,10 @@ customElements.define("counter-button", CounterButton);
 ```
 
 ### Anidamiento de Web Components con DSD
-Un Web Component puede incluir otros Web Components dentro de su plantilla `.html` (por ejemplo, `<version-viewer>` anidando `<tag-badge>`). Bustatic expande recursivamente los `<template shadowrootmode="open">` de los componentes internos e inyecta automáticamente los `<script type="module">` necesarios en `<head>` sin duplicarlos.
+Un Web Component puede incluir otros Web Components dentro de su plantilla `.html` (por ejemplo, `<version-viewer>` anidando `<tag-badge>`). Buntic expande recursivamente los `<template shadowrootmode="open">` de los componentes internos e inyecta automáticamente los `<script type="module">` necesarios en `<head>` sin duplicarlos.
 
 > [!TIP]
-> Dentro de un archivo `.css` de Web Component, puedes usar `:host` o `&` indistintamente: Bustatic convierte `&` a `:host` de forma automática para estilizar el elemento anfitrión del Shadow DOM. Además, la hoja de estilos global del proyecto se propaga al Shadow DOM para mantener disponibles tus variables CSS (como `--color-*`).
+> Dentro de un archivo `.css` de Web Component, puedes usar `:host` o `&` indistintamente: Buntic convierte `&` a `:host` de forma automática para estilizar el elemento anfitrión del Shadow DOM. Además, la hoja de estilos global del proyecto se propaga al Shadow DOM para mantener disponibles tus variables CSS (como `--color-*`).
 
 ---
 
@@ -134,7 +134,7 @@ Para mantener una arquitectura modular, predecible y con resolución directa $O(
 
 1. **Cumplimiento W3C:** Todas las etiquetas deben contener un guion (`-`) y comenzar con letra minúscula `[a-z]`.
 2. **Detección Preventiva de Colisiones:** Si dos archivos intentan registrar el mismo tag (ej. `pkg-a/card.ts` y `pkg-b/card.ts`):
-   - En **`bustatic dev`**: Muestra advertencia en consola y mantiene el registro reactivo.
-   - En **`bustatic build`**: Detiene la compilación con un error fatal antes de empaquetar.
-3. **Advertencia de Componentes No Registrados:** Si en tu HTML escribes una etiqueta con guion (ej. `<mi-widget>`) que no existe en el proyecto, Bustatic te avisa en consola para detectar errores tipográficos.
-4. **Advertencia de Componentes Huérfanos:** Si un Web Component está definido en el proyecto pero ninguna página lo utiliza, Bustatic te alerta para mantener tu base de código limpia.
+   - En **`buntic dev`**: Muestra advertencia en consola y mantiene el registro reactivo.
+   - En **`buntic build`**: Detiene la compilación con un error fatal antes de empaquetar.
+3. **Advertencia de Componentes No Registrados:** Si en tu HTML escribes una etiqueta con guion (ej. `<mi-widget>`) que no existe en el proyecto, Buntic te avisa en consola para detectar errores tipográficos.
+4. **Advertencia de Componentes Huérfanos:** Si un Web Component está definido en el proyecto pero ninguna página lo utiliza, Buntic te alerta para mantener tu base de código limpia.

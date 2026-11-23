@@ -1,12 +1,12 @@
-# 📑 Guía de Plantillas y Componentes en Bustatic
+# 📑 Guía de Plantillas y Componentes en Buntic
 
-Bustatic utiliza HTML estándar complementado con etiquetas especiales de tiempo de compilación (`<layout>`, `<component>`, `<slot>`, `<each>`, `<if>`) procesadas a velocidad de C++ con el runtime de Bun.
+Buntic utiliza HTML estándar complementado con etiquetas especiales de tiempo de compilación (`<layout>`, `<component>`, `<slot>`, `<each>`, `<if>`) procesadas a velocidad de C++ con el runtime de Bun.
 
 ---
 
 ## ⚡ Formas de Referenciar Rutas y Soporte en VS Code
 
-Bustatic soporta tres formas flexibles de referenciar cualquier `<layout>`, `<component>` o `<each>`:
+Buntic soporta tres formas flexibles de referenciar cualquier `<layout>`, `<component>` o `<each>`:
 
 1. **Relativa a la Raíz del Proyecto (`/`):**
    ```html
@@ -31,16 +31,16 @@ Bustatic soporta tres formas flexibles de referenciar cualquier `<layout>`, `<co
      <component src="card.html" />
    </layout>
    ```
-   *La opción más corta: Bustatic busca automáticamente en las carpetas `layouts/` y `components/`.*
+   *La opción más corta: Buntic busca automáticamente en las carpetas `layouts/` y `components/`.*
 
 ---
 
 ## 🚀 Virtual File System (VFS) y Caché en Memoria
 
-Bustatic incorpora un **Virtual File System (VFS)** en memoria:
+Buntic incorpora un **Virtual File System (VFS)** en memoria:
 - **Indexación instantánea:** Al iniciar, indexa la estructura del proyecto en RAM, evitando miles de llamadas repetitivas `statSync` o `existsSync` a disco.
 - **Caché de contenido:** Las plantillas HTML y archivos JSON se leen del disco una sola vez y se reutilizan en memoria a través de todas las páginas y bucles `<each>`.
-- **Invalidación reactiva:** Durante `bustatic dev`, el observador de archivos refresca en el VFS únicamente los archivos modificados en tiempo real.
+- **Invalidación reactiva:** Durante `buntic dev`, el observador de archivos refresca en el VFS únicamente los archivos modificados en tiempo real.
 
 ---
 
@@ -88,7 +88,7 @@ Un layout es una estructura base HTML (habitualmente en `layouts/`) que envuelve
 
 ## 2. Componentes y Gráficos SVG (`<component>`)
 
-Bustatic unifica la inclusión de fragmentos HTML, Web Components y gráficos vectoriales SVG bajo la misma etiqueta `<component src="...">`, diferenciando el comportamiento según la extensión del archivo:
+Buntic unifica la inclusión de fragmentos HTML, Web Components y gráficos vectoriales SVG bajo la misma etiqueta `<component src="...">`, diferenciando el comportamiento según la extensión del archivo:
 
 ```text
 <component src="...">
@@ -223,7 +223,7 @@ En cualquier plantilla o componente puedes interpolar valores directamente con l
 
 ## 📚 Guías Dedicadas para Características Avanzadas
 
-Para profundizar en las funcionalidades avanzadas de Bustatic, consulta nuestras guías especializadas:
+Para profundizar en las funcionalidades avanzadas de Buntic, consulta nuestras guías especializadas:
 
 - 🎨 **[Estilos Scoped y Grafo CSS](./scoped-css.md):** Encapsulación con `<style scoped>`, selector `&` / `:host` y CSS hermano co-ubicado.
 - 🧩 **[Web Components Nativos y DSD](./web-components.md):** Interactividad cliente con Declarative Shadow DOM y tríadas `.ts` + `.html` + `.css`.

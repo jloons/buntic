@@ -30,7 +30,7 @@ describe("Environment Variables & In-Memory Global Data Store", () => {
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
       storageDir: join(TEST_DIR, "storage"),
-      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
+      cacheDir: join(TEST_DIR, ".buntic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port: 3000,
       minify: false,
@@ -43,14 +43,14 @@ describe("Environment Variables & In-Memory Global Data Store", () => {
     test("parses .env content accurately with comments, quotes and spaces", () => {
       const raw = `
         # Comment line
-        PUBLIC_SITE_NAME = "Bustatic Blog"
+        PUBLIC_SITE_NAME = "Buntic Blog"
         PUBLIC_API_URL='https://api.example.com'
         EMPTY_VAR=
         # Another comment
         QUOTED_MULTILINE="Line 1\\nLine 2"
       `;
       const parsed = parseEnvContent(raw);
-      expect(parsed.PUBLIC_SITE_NAME).toBe("Bustatic Blog");
+      expect(parsed.PUBLIC_SITE_NAME).toBe("Buntic Blog");
       expect(parsed.PUBLIC_API_URL).toBe("https://api.example.com");
       expect(parsed.QUOTED_MULTILINE).toBe("Line 1\nLine 2");
       expect(parsed.EMPTY_VAR).toBe("");
@@ -100,7 +100,7 @@ describe("Environment Variables & In-Memory Global Data Store", () => {
       mkdirSync(dataDir, { recursive: true });
 
       // 1. Static JSON
-      writeFileSync(join(dataDir, "site.json"), JSON.stringify({ name: "Bustatic Site", author: "Bun Team" }));
+      writeFileSync(join(dataDir, "site.json"), JSON.stringify({ name: "Buntic Site", author: "Bun Team" }));
 
       // 2. Async TypeScript loader with execution counter
       let executionCount = 0;
@@ -123,7 +123,7 @@ describe("Environment Variables & In-Memory Global Data Store", () => {
 
       // First call: executes loaders and caches in RAM
       const data1 = await engine.loadData();
-      expect(data1.site.name).toBe("Bustatic Site");
+      expect(data1.site.name).toBe("Buntic Site");
       expect(data1.articles.length).toBe(2);
       expect(data1.articles[0].title).toBe("Primer Post");
       expect((globalThis as any).__testExecutionCount).toBe(1);
@@ -169,10 +169,10 @@ describe("Environment Variables & In-Memory Global Data Store", () => {
       const dataDir = join(TEST_DIR, "data");
       mkdirSync(dataDir, { recursive: true });
 
-      writeFileSync(join(dataDir, "site.json"), JSON.stringify({ name: "Bustatic Docs" }));
+      writeFileSync(join(dataDir, "site.json"), JSON.stringify({ name: "Buntic Docs" }));
       writeFileSync(
         join(TEST_DIR, ".env.public"),
-        "PUBLIC_API=https://api.bustatic.dev\n"
+        "PUBLIC_API=https://api.buntic.dev\n"
       );
 
       const engine = new TemplateEngine(createTestConfig());
@@ -187,13 +187,13 @@ describe("Environment Variables & In-Memory Global Data Store", () => {
       const rendered = await engine.renderPage(pageHtml, join(TEST_DIR, "pages/blog/[slug].html"), {
         params: { slug: "mi-primer-post" },
         props: {
-          article: { title: "Introducción a Bustatic", author: "Dev" },
+          article: { title: "Introducción a Buntic", author: "Dev" },
         },
       });
 
-      expect(rendered).toContain("<h1>Bustatic Docs</h1>");
-      expect(rendered).toContain("<p>API: https://api.bustatic.dev</p>");
-      expect(rendered).toContain("<h2>Introducción a Bustatic</h2>");
+      expect(rendered).toContain("<h1>Buntic Docs</h1>");
+      expect(rendered).toContain("<p>API: https://api.buntic.dev</p>");
+      expect(rendered).toContain("<h2>Introducción a Buntic</h2>");
       expect(rendered).toContain("<span>Slug: mi-primer-post</span>");
     });
   });

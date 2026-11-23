@@ -35,7 +35,7 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
       storageDir: join(TEST_DIR, "storage"),
-      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
+      cacheDir: join(TEST_DIR, ".buntic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port,
       minify: false,
@@ -63,7 +63,7 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
       export default async function() {
         return [
           { params: { slug: "bun-v1" }, props: { titulo: "Lanzamiento Bun v1" } },
-          { params: { slug: "bustatic-ssg" }, props: { titulo: "Bustatic SSG Nativo" } }
+          { params: { slug: "buntic-ssg" }, props: { titulo: "Buntic SSG Nativo" } }
         ];
       }
       `
@@ -83,13 +83,13 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
     const htmlPost1 = await resPost1.text();
     expect(htmlPost1).toContain("<h1>Lanzamiento Bun v1</h1>");
     expect(htmlPost1).toContain("<p>Slug: bun-v1</p>");
-    expect(htmlPost1).toContain("__bustatic_live_reload");
+    expect(htmlPost1).toContain("__buntic_live_reload");
 
     // 3. Fetch dynamic route 2
-    const resPost2 = await fetch(`http://localhost:${port}/articulos/bustatic-ssg/`);
+    const resPost2 = await fetch(`http://localhost:${port}/articulos/buntic-ssg/`);
     expect(resPost2.status).toBe(200);
     const htmlPost2 = await resPost2.text();
-    expect(htmlPost2).toContain("<h1>Bustatic SSG Nativo</h1>");
+    expect(htmlPost2).toContain("<h1>Buntic SSG Nativo</h1>");
 
     // 4. Fetch non-existent route -> Assisted 404 with route suggestions
     const resNotFound = await fetch(`http://localhost:${port}/articulos/no-existe`);
@@ -98,7 +98,7 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
     expect(htmlNotFound).toContain("404 - Page Not Found");
     expect(htmlNotFound).toContain("Available routes in this project");
     expect(htmlNotFound).toContain("/articulos/bun-v1");
-    expect(htmlNotFound).toContain("/articulos/bustatic-ssg");
+    expect(htmlNotFound).toContain("/articulos/buntic-ssg");
   });
 
   test("serves static page with co-located data loader (.data.ts) providing props and route SEO in dev mode", async () => {

@@ -5,17 +5,17 @@ import { Builder } from "./builder/builder.ts";
 import { startDevServer } from "./server/dev.ts";
 import { AssetCache } from "./assets/cache.ts";
 import { initProject, AVAILABLE_TEMPLATES } from "./init.ts";
-import { getPackageRoot, registerBustaticModuleResolver, syncProjectTypes } from "./runtime.ts";
+import { getPackageRoot, registerBunticModuleResolver, syncProjectTypes } from "./runtime.ts";
 import { getErrorMessage } from "./utils/logger.ts";
 
 export async function runCLI(args: string[]): Promise<void> {
-  registerBustaticModuleResolver();
+  registerBunticModuleResolver();
 
   const command = args[0] || "help";
 
   if (command === "--version" || command === "-v") {
     const pkg = await Bun.file(`${getPackageRoot()}/package.json`).json();
-    console.log(`bustatic v${pkg.version}`);
+    console.log(`buntic v${pkg.version}`);
     return;
   }
 
@@ -79,24 +79,24 @@ export async function runCLI(args: string[]): Promise<void> {
 
       const relTarget = relative(process.cwd(), result.targetDir) || ".";
       console.log(
-        `\n⚡ \x1b[36m[Bustatic]\x1b[0m Initialized new project (\x1b[33m${result.template}\x1b[0m) in: \x1b[32m${result.targetDir}\x1b[0m`
+        `\n⚡ \x1b[36m[Buntic]\x1b[0m Initialized new project (\x1b[33m${result.template}\x1b[0m) in: \x1b[32m${result.targetDir}\x1b[0m`
       );
       console.log(`  ✔ Created ${result.filesCopied} file(s) (no package.json required)`);
       if (result.skillsDir) {
-        console.log(`  ✔ Installed Bustatic agent skill in .agents/skills/bustatic`);
+        console.log(`  ✔ Installed Buntic agent skill in .agents/skills/buntic`);
       }
-      console.log(`  ✔ Generated TypeScript definitions in .bustatic/types/`);
+      console.log(`  ✔ Generated TypeScript definitions in .buntic/types/`);
       console.log(`\n\x1b[1mNext steps:\x1b[0m`);
       if (relTarget !== ".") {
         console.log(`  cd ${relTarget}`);
       }
-      console.log(`  bustatic dev\n`);
+      console.log(`  buntic dev\n`);
       return;
     }
 
     if (command === "clean") {
       const config = await resolveConfig(targetDir);
-      console.log(`\n🧹 \x1b[36m[Bustatic]\x1b[0m Cleaning build and cache directories for: \x1b[33m${config.root}\x1b[0m`);
+      console.log(`\n🧹 \x1b[36m[Buntic]\x1b[0m Cleaning build and cache directories for: \x1b[33m${config.root}\x1b[0m`);
       if (existsSync(config.outDir)) {
         rmSync(config.outDir, { recursive: true, force: true });
         console.log(`  ✔ Removed ${config.outDir}`);
@@ -118,14 +118,14 @@ export async function runCLI(args: string[]): Promise<void> {
         console.log(`\x1b[32m✔\x1b[0m Cache cleaned.`);
       }
 
-      console.log(`\n🚀 \x1b[36m[Bustatic]\x1b[0m Starting dev server for: \x1b[33m${config.root}\x1b[0m`);
+      console.log(`\n🚀 \x1b[36m[Buntic]\x1b[0m Starting dev server for: \x1b[33m${config.root}\x1b[0m`);
       const devInstance = startDevServer(config);
       console.log(`   ➜ Local:   \x1b[32mhttp://localhost:${devInstance.port}/\x1b[0m`);
       console.log(`   ➜ Live reload enabled via WebSockets.\n`);
 
       // Handle graceful shutdown
       process.on("SIGINT", () => {
-        console.log("\n\x1b[33m[Bustatic]\x1b[0m Shutting down server...");
+        console.log("\n\x1b[33m[Buntic]\x1b[0m Shutting down server...");
         devInstance.stop();
         process.exit(0);
       });
@@ -133,7 +133,7 @@ export async function runCLI(args: string[]): Promise<void> {
       const config = await resolveConfig(targetDir, { outDir });
       syncProjectTypes(config.root);
 
-      console.log(`\n📦 \x1b[36m[Bustatic]\x1b[0m Building static site for: \x1b[33m${config.root}\x1b[0m`);
+      console.log(`\n📦 \x1b[36m[Buntic]\x1b[0m Building static site for: \x1b[33m${config.root}\x1b[0m`);
 
       const builder = new Builder(config);
       const result = await builder.build({ cleanCache });
@@ -152,21 +152,21 @@ export async function runCLI(args: string[]): Promise<void> {
 
 function printHelp(): void {
   console.log(`
-\x1b[1mBustatic\x1b[0m - Lightweight zero-dependency static site generator for Bun
+\x1b[1mBuntic\x1b[0m - Lightweight zero-dependency static site generator for Bun
 
 \x1b[1mUSAGE:\x1b[0m
-  bustatic <command> [directory] [options]
+  buntic <command> [directory] [options]
 
 \x1b[1mCOMMANDS:\x1b[0m
-  init [dir]      Initialize a new Bustatic project (zero package.json)
+  init [dir]      Initialize a new Buntic project (zero package.json)
   dev [dir]       Start the development server with live reload
   build [dir]     Build the static site for production into dist/
-  clean [dir]     Remove dist/ and .bustatic/cache/ directories
+  clean [dir]     Remove dist/ and .buntic/cache/ directories
   help            Show this help message
 
 \x1b[1mOPTIONS:\x1b[0m
   -t, --template <name>   Template for init: ${AVAILABLE_TEMPLATES.join(", ")} (default: blank)
-  --no-skills             Skip installing agent skills in .agents/skills/bustatic
+  --no-skills             Skip installing agent skills in .agents/skills/buntic
   -f, --force             Allow init in a non-empty directory
   -p, --port <port>       Port to run dev server on (default: 3000)
   -o, --outdir <dir>      Output directory for build (default: dist)
@@ -175,12 +175,12 @@ function printHelp(): void {
   -h, --help              Show help
 
 \x1b[1mEXAMPLES:\x1b[0m
-  $ bustatic init mi-sitio
-  $ bustatic init mi-sitio --template simple
-  $ bustatic dev
-  $ bustatic dev my-site --port 8080
-  $ bustatic build
-  $ bustatic build my-site --outdir ./public_html --clean-cache
-  $ bustatic clean
+  $ buntic init mi-sitio
+  $ buntic init mi-sitio --template simple
+  $ buntic dev
+  $ buntic dev my-site --port 8080
+  $ buntic build
+  $ buntic build my-site --outdir ./public_html --clean-cache
+  $ buntic clean
 `);
 }

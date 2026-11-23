@@ -1,6 +1,6 @@
-# ⚡ Bustatic Simple
+# ⚡ Buntic Simple
 
-Sitio multipágina estático creado con **Bustatic** (sin `package.json` ni `node_modules`).
+Sitio multipágina estático creado con **Buntic** (sin `package.json` ni `node_modules`).
 
 ---
 
@@ -15,7 +15,7 @@ mi-sitio/
 │   ├── data/          # site.json, features.json
 │   ├── styles/        # main.css
 │   └── public/        # robots.txt
-├── bustatic.config.ts
+├── buntic.config.ts
 └── tsconfig.json
 ```
 
@@ -25,11 +25,11 @@ mi-sitio/
 
 ```bash
 # Servidor de desarrollo con live-reload
-bustatic dev
+buntic dev
 
 # Compilar para producción en dist/
-bustatic build
+buntic build
 
 # Limpiar dist/ y caché
-bustatic clean
+buntic clean
 ```

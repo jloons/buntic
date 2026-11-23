@@ -34,8 +34,8 @@ describe("Builder Phase 2 Integration (Assets, Storage, SEO & Feeds)", () => {
     const configCode = `
       export default {
         site: {
-          url: "https://bustatic-demo.com",
-          title: "Bustatic Demo",
+          url: "https://buntic-demo.com",
+          title: "Buntic Demo",
           description: "Sitio de prueba"
         },
         seo: {
@@ -48,7 +48,7 @@ describe("Builder Phase 2 Integration (Assets, Storage, SEO & Feeds)", () => {
         }
       };
     `;
-    await Bun.write(join(tmpDir, "bustatic.config.ts"), configCode);
+    await Bun.write(join(tmpDir, "buntic.config.ts"), configCode);
 
     // Write storage/s3.ts
     const s3Code = `
@@ -137,8 +137,8 @@ describe("Builder Phase 2 Integration (Assets, Storage, SEO & Feeds)", () => {
     const indexHtml = await Bun.file(join(tmpDir, "dist/index.html")).text();
     expect(indexHtml).toContain("<title>Inicio</title>");
     expect(indexHtml).toContain('<meta property="og:title" content="Inicio">');
-    expect(indexHtml).toContain('<link rel="canonical" href="https://bustatic-demo.com">');
-    expect(indexHtml).toContain('<meta property="og:image" content="https://bustatic-demo.com/assets/seo/');
+    expect(indexHtml).toContain('<link rel="canonical" href="https://buntic-demo.com">');
+    expect(indexHtml).toContain('<meta property="og:image" content="https://buntic-demo.com/assets/seo/');
     expect(indexHtml).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(indexHtml).not.toContain("<seo");
 
@@ -156,18 +156,18 @@ describe("Builder Phase 2 Integration (Assets, Storage, SEO & Feeds)", () => {
       join(tmpDir, "dist/blog/articulo-1/index.html")
     ).text();
     expect(blogPostHtml).toContain("<title>Artículo 1 | Blog</title>");
-    expect(blogPostHtml).toContain('<link rel="canonical" href="https://bustatic-demo.com/blog/articulo-1">');
+    expect(blogPostHtml).toContain('<link rel="canonical" href="https://buntic-demo.com/blog/articulo-1">');
     expect(blogPostHtml).toContain("Artículo 1");
 
     // 3. Check SEO artifacts in dist/
     expect(existsSync(join(tmpDir, "dist/sitemap.xml"))).toBe(true);
     const sitemap = await Bun.file(join(tmpDir, "dist/sitemap.xml")).text();
-    expect(sitemap).toContain("<loc>https://bustatic-demo.com/</loc>");
-    expect(sitemap).toContain("<loc>https://bustatic-demo.com/blog/articulo-1</loc>");
+    expect(sitemap).toContain("<loc>https://buntic-demo.com/</loc>");
+    expect(sitemap).toContain("<loc>https://buntic-demo.com/blog/articulo-1</loc>");
 
     expect(existsSync(join(tmpDir, "dist/robots.txt"))).toBe(true);
     const robots = await Bun.file(join(tmpDir, "dist/robots.txt")).text();
-    expect(robots).toContain("Sitemap: https://bustatic-demo.com/sitemap.xml");
+    expect(robots).toContain("Sitemap: https://buntic-demo.com/sitemap.xml");
 
     expect(existsSync(join(tmpDir, "dist/rss.xml"))).toBe(true);
     const rss = await Bun.file(join(tmpDir, "dist/rss.xml")).text();
@@ -178,7 +178,7 @@ describe("Builder Phase 2 Integration (Assets, Storage, SEO & Feeds)", () => {
     expect(atom).toContain("<title>Artículo 1</title>");
 
     // 4. Check persistent cache created
-    expect(existsSync(join(tmpDir, ".bustatic/cache/images"))).toBe(true);
+    expect(existsSync(join(tmpDir, ".buntic/cache/images"))).toBe(true);
 
     // 5. Build with cleanCache
     const cleanResult = await builder.build({ cleanCache: true });

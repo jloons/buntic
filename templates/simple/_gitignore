@@ -1,5 +1,5 @@
 dist
-.bustatic
-.bustatic-staging
+.buntic
+.buntic-staging
 .DS_Store
 *.log

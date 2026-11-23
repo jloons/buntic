@@ -1,6 +1,6 @@
 # 🗄️ Motores SQL Nativos (`bun:sqlite` y `Bun.sql`)
 
-Bustatic permite alimentar páginas estáticas y colecciones dinámicas directamente desde bases de datos locales o remotas a velocidad C++ nativa, **sin instalar clientes NPM pesados de terceros** (como `pg`, `better-sqlite3`, `knex` o `prisma`).
+Buntic permite alimentar páginas estáticas y colecciones dinámicas directamente desde bases de datos locales o remotas a velocidad C++ nativa, **sin instalar clientes NPM pesados de terceros** (como `pg`, `better-sqlite3`, `knex` o `prisma`).
 
 ---
 
@@ -52,7 +52,7 @@ db.run("INSERT INTO usuarios (nombre) VALUES (?)", ["Alicia"]);
 
 ## 🐘 2. PostgreSQL Remoto con `Bun.sql`
 
-Para proyectos empresariales que consumen datos de servidores PostgreSQL centrales (AWS RDS, Supabase, Neon, servidores locales), Bustatic aprovecha el driver nativo de Bun implementado en C++ (`Bun.sql`):
+Para proyectos empresariales que consumen datos de servidores PostgreSQL centrales (AWS RDS, Supabase, Neon, servidores locales), Buntic aprovecha el driver nativo de Bun implementado en C++ (`Bun.sql`):
 
 ### Ejemplo: Blog Corporativo desde PostgreSQL
 
@@ -100,7 +100,7 @@ export default async function() {
 
 ## 🔴 3. Servidores Redis Nativos con `Bun.redis`
 
-Para recuperar datos estructurados o catálogos en memoria desde servidores Redis, Bustatic aprovecha el cliente nativo de Bun:
+Para recuperar datos estructurados o catálogos en memoria desde servidores Redis, Buntic aprovecha el cliente nativo de Bun:
 
 ### Ejemplo: Carga de Catálogo desde Redis
 
@@ -123,6 +123,6 @@ export default async function() {
 
 ## 🎯 Ventajas de Rendimiento
 
-1. **Cero Latencia en Producción:** Toda la interacción SQL ocurre **durante el comando `bustatic build`**. El sitio estático final generado en `dist/` se compone únicamente de archivos HTML, CSS y WebP pre-renderizados servidos instantáneamente desde un CDN o servidor HTTP.
+1. **Cero Latencia en Producción:** Toda la interacción SQL ocurre **durante el comando `buntic build`**. El sitio estático final generado en `dist/` se compone únicamente de archivos HTML, CSS y WebP pre-renderizados servidos instantáneamente desde un CDN o servidor HTTP.
 2. **Cero Fugas de Credenciales:** La cadena de conexión a la base de datos y las credenciales solo existen durante la compilación en tu máquina o pipeline de CI/CD. Jamás se exponen al cliente.
 3. **Mantenimiento Cero:** No tienes dependencias nativas de node-gyp ni problemas de compatibilidad entre arquitecturas (x86_64 vs arm64).

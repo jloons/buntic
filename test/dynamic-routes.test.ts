@@ -36,7 +36,7 @@ describe("Dynamic Router & Pagination System", () => {
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
       storageDir: join(TEST_DIR, "storage"),
-      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
+      cacheDir: join(TEST_DIR, ".buntic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port: 3000,
       minify: false,
@@ -189,7 +189,7 @@ describe("Dynamic Router & Pagination System", () => {
       );
 
       await expect(resolveAllRoutes(config, {})).rejects.toThrow(
-        /\[Bustatic Collision Error\]: Duplicate route generated for "\/blog\/mismo-slug"/
+        /\[Buntic Collision Error\]: Duplicate route generated for "\/blog\/mismo-slug"/
       );
     });
 

@@ -1,12 +1,12 @@
-# 🗺️ Roadmap de Bustatic
+# 🗺️ Roadmap de Buntic
 
-Este documento define la visión técnica y las etapas de desarrollo planificadas para **Bustatic**, el generador de sitios estáticos de cero dependencias externas nativo para el runtime de **Bun**.
+Este documento define la visión técnica y las etapas de desarrollo planificadas para **Buntic**, el generador de sitios estáticos de cero dependencias externas nativo para el runtime de **Bun**.
 
 ---
 
 ## 📍 Estado Actual: v0.3.0 (Assets, Object Storage y Suite SEO)
 
-Bustatic cuenta con un motor de compilación maduro, cobertura de pruebas completa (100+ tests pasando) y cero dependencias de terceros:
+Buntic cuenta con un motor de compilación maduro, cobertura de pruebas completa (100+ tests pasando) y cero dependencias de terceros:
 
 - [x] **Motor de Plantillas Estándar:** `<layout>`, `<slot>` y slots con nombre, directiva `<each>` con auto-spread, y renderizado condicional con `<if is="...">` / `<else>`.
 - [x] **Virtual File System (VFS) en RAM:** Indexación instantánea en memoria y resolución de rutas relativas (`./`, `../`) con soporte nativo para navegación `Ctrl + Click` en Visual Studio Code.
@@ -23,8 +23,8 @@ Bustatic cuenta con un motor de compilación maduro, cobertura de pruebas comple
   - Limpieza automática de prólogos XML (`<?xml ...?>`) y declaraciones `<!DOCTYPE ...>`.
   - Soporte para `<style scoped>` interno y archivos CSS hermanos (`.svg` + `.css`) con selector `&`.
   - Soporte transparente tanto en HTML estándar como dentro de plantillas Declarative Shadow DOM.
-- [x] **Entorno de Desarrollo Integrado:** Servidor `bustatic dev` con WebSockets nativos de Bun, live-reload automático y transpilación al vuelo de TypeScript y JSX.
-- [x] **Compilador de Producción:** Comando `bustatic build` con minificación y empaquetado ultraveloz mediante `Bun.build`.
+- [x] **Entorno de Desarrollo Integrado:** Servidor `buntic dev` con WebSockets nativos de Bun, live-reload automático y transpilación al vuelo de TypeScript y JSX.
+- [x] **Compilador de Producción:** Comando `buntic build` con minificación y empaquetado ultraveloz mediante `Bun.build`.
 
 ---
 
@@ -58,7 +58,7 @@ Bustatic cuenta con un motor de compilación maduro, cobertura de pruebas comple
 
 ## 🎨 Fase 2: Optimización de Assets, Object Storage Remoto y SEO (v0.3.0)
 
-Esta fase dota a Bustatic de gestión profesional de medios multimedia, integración con almacenamiento en la nube y utilidades esenciales para motores de búsqueda.
+Esta fase dota a Buntic de gestión profesional de medios multimedia, integración con almacenamiento en la nube y utilidades esenciales para motores de búsqueda.
 
 - [x] **Pipeline de Imágenes Híbrido (Local y Remoto):**
   - Compresión y generación automática a formato `WebP` a velocidad C++ con la clase nativa `Bun.Image`.
@@ -71,9 +71,9 @@ Esta fase dota a Bustatic de gestión profesional de medios multimedia, integrac
   - **Soporte Nativo para OCI Registry y ORAS:** Cliente integrado de cero dependencias (`OrasClient` y helper `createOrasStorage`) para almacenar, versionar y recuperar archivos binarios directamente desde cualquier Docker Registry v2/v3 u OCI Distribution con soporte de autenticación automática Basic/Bearer.
   - **Versionado por Tags OCI:** Mapeo directo de claves con tag (`product/1/portrait` &rarr; `:latest`, `product/1/portrait:2020` &rarr; `:2020`) con deduplicación y caché inmutable indexado por digest SHA-256 (`artifact.digest`).
   - Detección e inferencia automática del loader por defecto cuando existe un único archivo en `storage/`.
-  - **Caché Persistente Inmutable por ETag:** Almacenamiento local en `.bustatic/cache/images/` indexado por hash SHA-256 `(namespace + key + etag + ancho + webp)`, evitando re-descargas y re-compresiones innecesarias en builds locales y CI/CD.
-  - Opción `--clean-cache` en `bustatic build` / `dev` y comando `bustatic clean` para purgar `dist/` y el caché persistente.
-  - **Demostración Autocontenida con Podman (`examples/catalog`):** Orquestación automatizada de contenedores temporales (`bustatic-demo-*`) para PostgreSQL, Redis, OCI Registry y S3 con Web Components anidados y Declarative Shadow DOM.
+  - **Caché Persistente Inmutable por ETag:** Almacenamiento local en `.buntic/cache/images/` indexado por hash SHA-256 `(namespace + key + etag + ancho + webp)`, evitando re-descargas y re-compresiones innecesarias en builds locales y CI/CD.
+  - Opción `--clean-cache` en `buntic build` / `dev` y comando `buntic clean` para purgar `dist/` y el caché persistente.
+  - **Demostración Autocontenida con Podman (`examples/catalog`):** Orquestación automatizada de contenedores temporales (`buntic-demo-*`) para PostgreSQL, Redis, OCI Registry y S3 con Web Components anidados y Declarative Shadow DOM.
 - [x] **Generadores SEO out-of-the-box:**
   - Generación automática de `sitemap.xml` dinámico incorporando todas las rutas estáticas y dinámicas resueltas por SQL, JSON o loaders.
   - Generación de `robots.txt` configurable, respetando archivos manuales en `public/robots.txt`.
@@ -90,7 +90,7 @@ Esta fase dota a Bustatic de gestión profesional de medios multimedia, integrac
 Consolidación de la plataforma para su adopción a gran escala, extensibilidad modular y facilidad de autoría de contenido.
 
 - [ ] **Sistema de Plugins y Lifecycle Hooks:**
-  - Ganchos configurables en `bustatic.config.ts`: `beforeBuild`, `afterBuild`, `onTransformHtml`, `onPageRender`.
+  - Ganchos configurables en `buntic.config.ts`: `beforeBuild`, `afterBuild`, `onTransformHtml`, `onPageRender`.
   - API de plugins para transformar código, procesar assets adicionales o integrarse con servicios de analíticas.
 - [ ] **Soporte Nativo para Markdown / Frontmatter:**
   - Renderizado automático de archivos `.md` en `pages/`.
@@ -98,8 +98,8 @@ Consolidación de la plataforma para su adopción a gran escala, extensibilidad 
   - Layouts por defecto configurables para artículos o documentación técnica.
 - [ ] **Compilación a Binario Único (`bun build --compile`):**
   - Capacidad de compilar tanto el CLI como sitios generados en un solo binario autocontenido y ejecutable sin requerir Bun instalado en la máquina destino.
-- [x] **Compilación de Paquete npm y Scaffolding CLI (`bustatic init`):**
+- [x] **Compilación de Paquete npm y Scaffolding CLI (`buntic init`):**
   - Empaquetado compilado en `dist/` (`index.js`, `cli.js` y declaraciones `.d.ts`) manteniendo cero dependencias de producción.
-  - Comando `bustatic init [dir]` con plantillas `blank` (por defecto) y `simple`, sin `package.json`, instalación automática de skills en `.agents/skills/bustatic/` y soporte TypeScript sin `node_modules` vía `.bustatic/types/` + resolver global `Bun.plugin`.
+  - Comando `buntic init [dir]` con plantillas `blank` (por defecto) y `simple`, sin `package.json`, instalación automática de skills en `.agents/skills/buntic/` y soporte TypeScript sin `node_modules` vía `.buntic/types/` + resolver global `Bun.plugin`.
 - [ ] **Publicación en JSR y Scaffolding Interactivo:**
-  - Publicación adicional en JSR y asistente interactivo `bun create bustatic`.
+  - Publicación adicional en JSR y asistente interactivo `bun create buntic`.

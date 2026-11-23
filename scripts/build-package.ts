@@ -28,7 +28,7 @@ if (!libBuild.success) {
 
 console.log("[build:pkg] Bundling CLI (dist/cli.js)...");
 const cliBuild = await Bun.build({
-  entrypoints: [join(rootDir, "bin", "bustatic.ts")],
+  entrypoints: [join(rootDir, "bin", "buntic.ts")],
   outdir: distDir,
   naming: "cli.js",
   target: "bun",

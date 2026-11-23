@@ -1,5 +1,5 @@
 /**
- * Bustatic Scoped CSS Processor
+ * Buntic Scoped CSS Processor
  * Handles <style scoped> blocks, scoping registry, sibling CSS attachment,
  * and depth-ordered extraction.
  */

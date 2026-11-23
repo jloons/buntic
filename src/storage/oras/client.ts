@@ -465,7 +465,7 @@ export class OrasClient {
 
       if (!isPathInside(options.outdir, outPath) || outPath === join(options.outdir)) {
         throw new Error(
-          `[Bustatic Security Error] Unsafe OCI layer title "${title}" escapes output directory "${options.outdir}".`
+          `[Buntic Security Error] Unsafe OCI layer title "${title}" escapes output directory "${options.outdir}".`
         );
       }
 

@@ -1,4 +1,4 @@
-import { defineConfig } from "bustatic";
+import { defineConfig } from "buntic";
 
 export default defineConfig({
   port: 3000,
@@ -6,6 +6,6 @@ export default defineConfig({
   site: {
     url: "https://misitio.com",
     title: "Mi Proyecto",
-    description: "Sitio web generado con Bustatic"
+    description: "Sitio web generado con Buntic"
   }
 });

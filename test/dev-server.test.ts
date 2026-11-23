@@ -15,8 +15,8 @@ describe("DevServer", () => {
       const res = await fetch(`http://localhost:${dev.port}/`);
       expect(res.status).toBe(200);
       const html = await res.text();
-      expect(html).toContain("Inicio | Bustatic Simple");
-      expect(html).toContain("__bustatic_live_reload");
+      expect(html).toContain("Inicio | Buntic Simple");
+      expect(html).toContain("__buntic_live_reload");
 
       // 2. Subpages
       const resAbout = await fetch(`http://localhost:${dev.port}/about`);
@@ -42,7 +42,7 @@ describe("DevServer", () => {
       expect(robotsText).toContain("User-agent: *");
 
       // 5. TypeScript file transpilation on the fly
-      const resTs = await fetch(`http://localhost:${dev.port}/bustatic.config.ts`);
+      const resTs = await fetch(`http://localhost:${dev.port}/buntic.config.ts`);
       expect(resTs.status).toBe(200);
       expect(resTs.headers.get("content-type")).toContain("application/javascript");
       const tsCode = await resTs.text();

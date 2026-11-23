@@ -290,7 +290,7 @@ describe("Scoped CSS Processor", () => {
         dataDir: join(exampleRoot, "src/data"),
         publicDir: join(exampleRoot, "src/public"),
         storageDir: join(exampleRoot, "src/storage"),
-        cacheDir: join(exampleRoot, ".bustatic/cache/images"),
+        cacheDir: join(exampleRoot, ".buntic/cache/images"),
         outDir: join(exampleRoot, "dist"),
         port: 3000,
         minify: true,
@@ -333,7 +333,7 @@ describe("Scoped CSS Processor", () => {
       expect(matches[1][1]).toBe(matches[2][1]);
 
       // Verify scoped CSS block was only injected ONCE in <head>
-      const scopedStyleMatches = rendered.match(/<style id="__bustatic_scoped">/g);
+      const scopedStyleMatches = rendered.match(/<style id="__buntic_scoped">/g);
       expect(scopedStyleMatches?.length).toBe(1);
 
       // Verify the CSS rule was not duplicated
@@ -363,15 +363,15 @@ describe("Scoped CSS Processor", () => {
       const rendered = await engine.renderPage(pageHtml, join(exampleRoot, "pages/test.html"));
 
       // Verify global styles were inlined
-      expect(rendered).toContain('<style id="__bustatic_global">');
+      expect(rendered).toContain('<style id="__buntic_global">');
       expect(rendered).not.toContain('<link rel="stylesheet" href="/styles/main.css">');
 
       // Verify scoped styles were inlined
-      expect(rendered).toContain('<style id="__bustatic_scoped">');
+      expect(rendered).toContain('<style id="__buntic_scoped">');
 
       // Verify global styles appear BEFORE scoped styles in <head> for correct cascade
-      const globalIdx = rendered.indexOf('id="__bustatic_global"');
-      const scopedIdx = rendered.indexOf('id="__bustatic_scoped"');
+      const globalIdx = rendered.indexOf('id="__buntic_global"');
+      const scopedIdx = rendered.indexOf('id="__buntic_scoped"');
       expect(globalIdx).toBeGreaterThan(-1);
       expect(scopedIdx).toBeGreaterThan(-1);
       expect(globalIdx).toBeLessThan(scopedIdx);
@@ -481,7 +481,7 @@ describe("Scoped CSS Processor", () => {
         dataDir: join(exampleRoot, "src/data"),
         publicDir: join(exampleRoot, "src/public"),
         storageDir: join(exampleRoot, "src/storage"),
-        cacheDir: join(exampleRoot, ".bustatic/cache/images"),
+        cacheDir: join(exampleRoot, ".buntic/cache/images"),
         outDir: join(exampleRoot, "dist"),
         port: 3000,
         minify: true,
@@ -526,7 +526,7 @@ describe("Scoped CSS Processor", () => {
       expect(rendered).toContain("<p>Footer Content</p>");
 
       // Verify the scoped CSS from my-footer.css was included in <head>
-      expect(rendered).toContain("<style id=\"__bustatic_scoped\">");
+      expect(rendered).toContain("<style id=\"__buntic_scoped\">");
       expect(rendered).toContain("border-top: 1px solid red;");
       expect(rendered).toContain("color: yellow;");
     });
@@ -694,8 +694,8 @@ describe("Scoped CSS Processor", () => {
         expect(devMainTag).toMatch(/^<main class="bs-[a-z0-9]+ bs-[a-z0-9]+">$/);
         expect(buildMainTag).toBe(devMainTag);
 
-        const devScoped = devIndexHtml.match(/<style id="__bustatic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
-        const buildScoped = buildIndexHtml.match(/<style id="__bustatic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
+        const devScoped = devIndexHtml.match(/<style id="__buntic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
+        const buildScoped = buildIndexHtml.match(/<style id="__buntic_scoped">[\s\S]*?<\/style>/)?.[0] || "";
         expect(devScoped).toContain("color: teal;");
         expect(devScoped).toContain("padding: 2rem;");
         expect(devScoped.indexOf("padding: 1rem;")).toBeLessThan(devScoped.indexOf("padding: 2rem;"));

@@ -63,7 +63,7 @@ export async function resolveWebComponentsInHtml(options: {
   if (globalRoot.root) {
     if (config.cssStrategy === "inline") {
       const globalCss = await cssGraph.flattenCss(globalRoot.root, vfs);
-      globalCssBlock = `<style data-bustatic="global">\n${globalCss.trim()}\n</style>`;
+      globalCssBlock = `<style data-buntic="global">\n${globalCss.trim()}\n</style>`;
     } else if (globalRoot.relativeRoot) {
       const globalPublicHref = `/${globalRoot.relativeRoot.replace(/\\/g, "/")}`;
       globalCssBlock = `<link rel="stylesheet" href="${globalPublicHref}">`;
@@ -153,7 +153,7 @@ export async function resolveWebComponentsInHtml(options: {
           const extracted = extractScopedStyles(rawHtml, scopeRegistry);
           rawHtml = extracted.html;
           if (extracted.scopedRules.length > 0) {
-            scopedDsdCssBlock = `<style data-bustatic="dsd-scoped">\n${extracted.scopedRules.join("\n\n")}\n</style>`;
+            scopedDsdCssBlock = `<style data-buntic="dsd-scoped">\n${extracted.scopedRules.join("\n\n")}\n</style>`;
           }
         }
 

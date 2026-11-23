@@ -1,6 +1,6 @@
-# 🛍️ Bustatic Showcase Catalog
+# 🛍️ Buntic Showcase Catalog
 
-> Ejemplo autocontenido de demostración para **Bustatic** con soporte para pruebas de integración contra servicios externos (**OCI Registry**, **PostgreSQL**, **Redis**, **S3**) ejecutados con **Podman** en Linux ARM64 / x86_64, o en modo local sin requerir contenedores.
+> Ejemplo autocontenido de demostración para **Buntic** con soporte para pruebas de integración contra servicios externos (**OCI Registry**, **PostgreSQL**, **Redis**, **S3**) ejecutados con **Podman** en Linux ARM64 / x86_64, o en modo local sin requerir contenedores.
 
 ---
 
@@ -26,7 +26,7 @@
    - Inyección de metadatos `<seo>`, tarjetas OpenGraph automáticas, `sitemap.xml` y `robots.txt`.
 6. **Componentes SVG Nativos y Recursos Estáticos:**
    - **SVG Inline como Componente (`<component src="../icons/clipboard.svg" />`)**: Inyección inline de iconos SVG con soporte para passthrough de atributos (`class`, `aria-hidden`), estilos scoped vía variables CSS (`color: var(--color-text)`), y compatibilidad nativa dentro de Declarative Shadow DOM (DSD) en `<tag-badge>`.
-   - **SVG Estático Externo en `public/`**: Uso de `/bustatic-icon.svg` mediante `<img>` estándar en el encabezado (`header.html`) y como favicon (`<link rel="icon">`) en el layout principal.
+   - **SVG Estático Externo en `public/`**: Uso de `/buntic-icon.svg` mediante `<img>` estándar en el encabezado (`header.html`) y como favicon (`<link rel="icon">`) en el layout principal.
 
 ---
 
@@ -46,7 +46,7 @@ bun run dev
 ---
 
 ### 2. Demostración con Podman: PostgreSQL + OCI Registry
-Levanta contenedores temporales `bustatic-demo-postgres` y `bustatic-demo-registry`, ejecuta el script de seed, compila el sitio y valida los resultados:
+Levanta contenedores temporales `buntic-demo-postgres` y `buntic-demo-registry`, ejecuta el script de seed, compila el sitio y valida los resultados:
 
 ```bash
 bun run demo:oci
@@ -55,7 +55,7 @@ bun run demo:oci
 ---
 
 ### 3. Demostración con Podman: Redis + S3 (local-s3)
-Levanta contenedores temporales `bustatic-demo-redis` y `bustatic-demo-s3`, ejecuta el seed y compila el sitio:
+Levanta contenedores temporales `buntic-demo-redis` y `buntic-demo-s3`, ejecuta el seed y compila el sitio:
 
 ```bash
 bun run demo:s3
@@ -83,7 +83,7 @@ bun run demo:clean
 
 ```text
 examples/catalog/
-├── bustatic.config.ts          # Configuración del sitio y proveedor de storage
+├── buntic.config.ts          # Configuración del sitio y proveedor de storage
 ├── package.json                # Scripts npm/bun
 ├── fixtures/                   # Datos de prueba autocontenidos
 │   ├── catalog.json            # Catálogo de 6 productos
@@ -116,7 +116,7 @@ examples/catalog/
     ├── icons/
     │   └── clipboard.svg       # Icono SVG inline usado en <tag-badge>
     ├── public/
-    │   ├── bustatic-icon.svg   # Logo Bustatic y favicon
+    │   ├── buntic-icon.svg   # Logo Buntic y favicon
     │   └── robots.txt          # Reglas SEO
     ├── styles/
     │   ├── colors.css          # Único archivo con definición de colores en :root

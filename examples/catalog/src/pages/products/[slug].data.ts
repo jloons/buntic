@@ -4,7 +4,7 @@ export default async function({ data }: { data: any }) {
     params: { slug: product.slug },
     props: { product },
     seo: {
-      title: `${product.name} | Bustatic Catalog`,
+      title: `${product.name} | Buntic Catalog`,
       description: product.summary,
       image: { key: product.imageKey, alt: product.alt },
     },

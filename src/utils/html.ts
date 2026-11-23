@@ -1,5 +1,5 @@
 /**
- * Shared HTML and XML string utilities for Bustatic.
+ * Shared HTML and XML string utilities for Buntic.
  */
 
 export function escapeHtml(str: string): string {

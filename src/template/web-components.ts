@@ -98,7 +98,7 @@ export class WebComponentRegistry {
     if (!expectedTag) {
       if (content && /(?:customElements\.define|@customElement)\s*\(\s*["']([a-z0-9-]+)["']/i.test(content)) {
         console.warn(
-          `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Web Component file "${filePath}" does not match naming convention (must be hyphenated kebab-case like "my-button.ts" or PascalCase like "MyButton.ts"). Registration skipped.`
+          `\x1b[33m⚠ [Buntic Warning]\x1b[0m Web Component file "${filePath}" does not match naming convention (must be hyphenated kebab-case like "my-button.ts" or PascalCase like "MyButton.ts"). Registration skipped.`
         );
       }
       return [];
@@ -107,7 +107,7 @@ export class WebComponentRegistry {
     const validation = this.validateTagName(expectedTag);
     if (!validation.valid) {
       console.warn(
-        `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Skipping invalid Custom Element tag "${expectedTag}" in ${filePath}: ${validation.reason}`
+        `\x1b[33m⚠ [Buntic Warning]\x1b[0m Skipping invalid Custom Element tag "${expectedTag}" in ${filePath}: ${validation.reason}`
       );
       return [];
     }
@@ -124,7 +124,7 @@ export class WebComponentRegistry {
       // Enforce: only 1 custom element per file
       if (declaredTags.size > 1) {
         console.warn(
-          `\x1b[33m⚠ [Bustatic Warning]\x1b[0m File "${filePath}" declares multiple Custom Elements (${Array.from(declaredTags).map((t) => `<${t}>`).join(", ")}). Bustatic strictly enforces 1 Web Component per file. File skipped.`
+          `\x1b[33m⚠ [Buntic Warning]\x1b[0m File "${filePath}" declares multiple Custom Elements (${Array.from(declaredTags).map((t) => `<${t}>`).join(", ")}). Buntic strictly enforces 1 Web Component per file. File skipped.`
         );
         return [];
       }
@@ -134,7 +134,7 @@ export class WebComponentRegistry {
         const declaredTag = Array.from(declaredTags)[0];
         if (declaredTag !== expectedTag) {
           console.warn(
-            `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Tag "<${declaredTag}>" in "${filePath}" does not match filename. Expected tag "<${expectedTag}>" for file "${basename(filePath)}". Registration skipped.`
+            `\x1b[33m⚠ [Buntic Warning]\x1b[0m Tag "<${declaredTag}>" in "${filePath}" does not match filename. Expected tag "<${expectedTag}>" for file "${basename(filePath)}". Registration skipped.`
           );
           return [];
         }
@@ -150,7 +150,7 @@ export class WebComponentRegistry {
       }
       this.conflicts.set(expectedTag, conflictFiles);
       console.warn(
-        `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Tag "<${expectedTag}>" in ${filePath} conflicts with definition in ${existingFile}.`
+        `\x1b[33m⚠ [Buntic Collision Warning]\x1b[0m Tag "<${expectedTag}>" in ${filePath} conflicts with definition in ${existingFile}.`
       );
       return [];
     }
@@ -237,7 +237,7 @@ export class WebComponentRegistry {
         .map((c) => `  • Tag "<${c.tag}>" defined in:\n${c.files.map((f) => `      - ${f}`).join("\n")}`)
         .join("\n\n");
       throw new Error(
-        `[Bustatic Conflict Error]: Tag collision detected between Web Components:\n${details}\n\n` +
+        `[Buntic Conflict Error]: Tag collision detected between Web Components:\n${details}\n\n` +
         `👉 Each Custom Element tag must be uniquely defined.`
       );
     }

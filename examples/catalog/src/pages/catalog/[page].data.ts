@@ -3,7 +3,7 @@ export default async function({ data, paginate }: { data: any; paginate: any }) 
   return paginate(products, {
     pageSize: 3,
     seo: {
-      title: "Catálogo de Productos | Bustatic",
+      title: "Catálogo de Productos | Buntic",
       description: "Explora la colección completa de productos con imágenes optimizadas WebP.",
     },
   });

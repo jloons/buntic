@@ -133,7 +133,7 @@ async function seedOciRegistry(images: Array<{ targetKey: string; filePath: stri
       target,
       files: [img.filePath],
       manifestAnnotations: {
-        "org.opencontainers.image.description": `Bustatic catalog image for ${img.targetKey}`,
+        "org.opencontainers.image.description": `Buntic catalog image for ${img.targetKey}`,
       },
     });
     console.log(`  ✔ Pushed OCI artifact: ${target}`);

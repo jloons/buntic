@@ -4,10 +4,10 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 describe("CLI", () => {
-  const cliPath = join(import.meta.dir, "../bin/bustatic.ts");
+  const cliPath = join(import.meta.dir, "../bin/buntic.ts");
   const tempDirs: string[] = [];
 
-  function makeTempDir(prefix = "bustatic-cli-test-"): string {
+  function makeTempDir(prefix = "buntic-cli-test-"): string {
     const dir = mkdtempSync(join(tmpdir(), prefix));
     tempDirs.push(dir);
     return dir;
@@ -30,7 +30,7 @@ describe("CLI", () => {
     const output = await new Response(proc.stdout).text();
     await proc.exited;
 
-    expect(output).toContain(`bustatic v${pkg.version}`);
+    expect(output).toContain(`buntic v${pkg.version}`);
     expect(proc.exitCode).toBe(0);
   });
 
@@ -71,15 +71,15 @@ describe("CLI", () => {
     expect(existsSync(join(projectDir, "node_modules"))).toBe(false);
 
     // Core project files, tsconfig, gitignore, ambient types, and skills
-    expect(existsSync(join(projectDir, "bustatic.config.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, "buntic.config.ts"))).toBe(true);
     expect(existsSync(join(projectDir, "tsconfig.json"))).toBe(true);
     expect(existsSync(join(projectDir, ".gitignore"))).toBe(true);
     expect(existsSync(join(projectDir, "_gitignore"))).toBe(false);
     expect(existsSync(join(projectDir, "src/pages/index.html"))).toBe(true);
     expect(existsSync(join(projectDir, "src/layouts/main.html"))).toBe(true);
     expect(existsSync(join(projectDir, "src/styles/main.css"))).toBe(true);
-    expect(existsSync(join(projectDir, ".bustatic/types/index.d.ts"))).toBe(true);
-    expect(existsSync(join(projectDir, ".agents/skills/bustatic/SKILL.md"))).toBe(true);
+    expect(existsSync(join(projectDir, ".buntic/types/index.d.ts"))).toBe(true);
+    expect(existsSync(join(projectDir, ".agents/skills/buntic/SKILL.md"))).toBe(true);
 
     // Build project from inside its directory with NO package.json or node_modules
     const buildProc = Bun.spawn(["bun", cliPath, "build"], {
@@ -115,7 +115,7 @@ describe("CLI", () => {
 
     expect(initProc.exitCode).toBe(0);
     expect(existsSync(join(projectDir, "package.json"))).toBe(false);
-    expect(existsSync(join(projectDir, ".agents/skills/bustatic/SKILL.md"))).toBe(false);
+    expect(existsSync(join(projectDir, ".agents/skills/buntic/SKILL.md"))).toBe(false);
     expect(existsSync(join(projectDir, "tsconfig.json"))).toBe(true);
     expect(existsSync(join(projectDir, ".gitignore"))).toBe(true);
     expect(existsSync(join(projectDir, "src/pages/about.html"))).toBe(true);
@@ -157,7 +157,7 @@ describe("CLI", () => {
     await forceProc.exited;
 
     expect(forceProc.exitCode).toBe(0);
-    expect(existsSync(join(targetDir, "bustatic.config.ts"))).toBe(true);
+    expect(existsSync(join(targetDir, "buntic.config.ts"))).toBe(true);
   });
 
   test("rejects invalid --port and unknown --template", async () => {

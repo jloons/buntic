@@ -9,7 +9,7 @@ const TEST_DIR = join(import.meta.dir, ".tmp-postgres-test");
 const POSTGRES_URL =
   process.env.TEST_POSTGRES_URL ||
   process.env.DATABASE_URL ||
-  "postgres://postgres:postgres@localhost:5432/bustatic_test";
+  "postgres://postgres:postgres@localhost:5432/buntic_test";
 
 /**
  * Checks whether PostgreSQL is reachable before running integration tests.
@@ -50,7 +50,7 @@ describe("Native Bun.sql (PostgreSQL) Integration with Loaders", async () => {
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
       storageDir: join(TEST_DIR, "storage"),
-      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
+      cacheDir: join(TEST_DIR, ".buntic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port: 3000,
       minify: false,
@@ -64,9 +64,9 @@ describe("Native Bun.sql (PostgreSQL) Integration with Loaders", async () => {
       const sql = new SQL(POSTGRES_URL);
 
       // 1. Setup real test table
-      await sql`DROP TABLE IF EXISTS bustatic_test_posts`;
+      await sql`DROP TABLE IF EXISTS buntic_test_posts`;
       await sql`
-        CREATE TABLE bustatic_test_posts (
+        CREATE TABLE buntic_test_posts (
           id SERIAL PRIMARY KEY,
           slug VARCHAR(100) UNIQUE NOT NULL,
           title VARCHAR(200) NOT NULL,
@@ -75,7 +75,7 @@ describe("Native Bun.sql (PostgreSQL) Integration with Loaders", async () => {
       `;
 
       await sql`
-        INSERT INTO bustatic_test_posts (slug, title, body) VALUES
+        INSERT INTO buntic_test_posts (slug, title, body) VALUES
         ('bienvenido-bun', 'Bienvenido al ecosistema Bun', 'Bun ejecuta código a velocidad C++ nativa.'),
         ('postgresql-nativo', 'PostgreSQL sin dependencias NPM', 'Bun.sql se comunica directamente con PostgreSQL.')
       `;
@@ -93,7 +93,7 @@ describe("Native Bun.sql (PostgreSQL) Integration with Loaders", async () => {
 
         export default async function() {
           const sql = new SQL(${JSON.stringify(POSTGRES_URL)});
-          const rows = await sql\`SELECT slug, title, body FROM bustatic_test_posts ORDER BY id ASC\`;
+          const rows = await sql\`SELECT slug, title, body FROM buntic_test_posts ORDER BY id ASC\`;
           await sql.close();
           return rows;
         }
@@ -134,7 +134,7 @@ describe("Native Bun.sql (PostgreSQL) Integration with Loaders", async () => {
       expect(post1Html).toContain("<article>Bun ejecuta código a velocidad C++ nativa.</article>");
 
       // Clean up database table
-      await sql`DROP TABLE IF EXISTS bustatic_test_posts`;
+      await sql`DROP TABLE IF EXISTS buntic_test_posts`;
       await sql.close();
     }
   );
