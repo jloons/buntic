@@ -11,7 +11,7 @@ class TagBadge extends HTMLElement {
           if (hint) {
             hint.textContent = "✓";
             setTimeout(() => {
-              hint.textContent = "📋";
+              hint.textContent = "";
             }, 1500);
           }
         } catch {

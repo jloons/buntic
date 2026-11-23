@@ -3,7 +3,7 @@
 
   <article class="product-detail">
     <nav class="breadcrumb">
-      <a href="/catalog">&larr; Volver al Catálogo</a>
+      <a href="/catalog" class="breadcrumb-link">Volver al Catálogo</a>
     </nav>
 
     <div class="product-layout">
@@ -75,9 +75,15 @@
     .breadcrumb {
       margin-bottom: 0.5rem;
     }
-    .breadcrumb a {
-      font-weight: 500;
+    .breadcrumb-link {
+      display: inline-block;
+      font-weight: bold;
       font-size: 0.95rem;
+      transition: scale 0.25s;
+      color: var(--color-accent-contrast);
+    }
+    .breadcrumb-link:hover {
+      scale: 1.1;
     }
     .product-layout {
       display: grid;
@@ -88,7 +94,6 @@
     .main-image-box {
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 12px;
       overflow: hidden;
       display: flex;
       justify-content: center;
@@ -111,11 +116,11 @@
       gap: 0.75rem;
     }
     .category-badge {
-      font-size: 0.75rem;
-      font-weight: 700;
+      font-size: 0.9rem;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-accent);
+      color: var(--color-accent-contrast);
     }
     .product-title {
       font-size: 2.25rem;
@@ -125,20 +130,20 @@
     .product-price {
       font-size: 1.75rem;
       font-weight: 700;
-      color: var(--color-accent);
+      color: var(--color-accent-contrast);
     }
     .product-lead {
       font-size: 1.15rem;
-      color: var(--color-text-muted);
+      color: var(--color-text);
       line-height: 1.5;
     }
     .product-body {
       line-height: 1.7;
+      font-style: italic;
     }
     .product-meta-box {
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 8px;
       padding: 1rem 1.25rem;
       display: flex;
       flex-direction: column;
@@ -160,7 +165,6 @@
       font-size: 0.85rem;
       background-color: var(--color-surface-alt);
       padding: 0.15rem 0.4rem;
-      border-radius: 4px;
       border: 1px solid var(--color-border);
       color: var(--color-accent);
     }
@@ -168,7 +172,6 @@
       font-weight: 600;
       font-size: 0.85rem;
       padding: 0.15rem 0.5rem;
-      border-radius: 4px;
     }
     .stock-status.in-stock {
       color: var(--color-success);
@@ -184,9 +187,10 @@
       padding-top: 2rem;
     }
     .archive-desc {
-      color: var(--color-text-muted);
+      color: var(--color-text);
       margin-bottom: 1rem;
       max-width: 800px;
+      font-style: italic;
     }
     @media (max-width: 768px) {
       .product-layout {

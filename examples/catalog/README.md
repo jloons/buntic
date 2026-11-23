@@ -24,6 +24,9 @@
 5. **SEO y Generación Estática Completa:**
    - Rutas dinámicas (`/products/[slug]`) y paginación automática (`/catalog`, `/catalog/2`).
    - Inyección de metadatos `<seo>`, tarjetas OpenGraph automáticas, `sitemap.xml` y `robots.txt`.
+6. **Componentes SVG Nativos y Recursos Estáticos:**
+   - **SVG Inline como Componente (`<component src="../icons/clipboard.svg" />`)**: Inyección inline de iconos SVG con soporte para passthrough de atributos (`class`, `aria-hidden`), estilos scoped vía variables CSS (`color: var(--color-text)`), y compatibilidad nativa dentro de Declarative Shadow DOM (DSD) en `<tag-badge>`.
+   - **SVG Estático Externo en `public/`**: Uso de `/bustatic-icon.svg` mediante `<img>` estándar en el encabezado (`header.html`) y como favicon (`<link rel="icon">`) en el layout principal.
 
 ---
 
@@ -110,6 +113,11 @@ examples/catalog/
     │   └── product-card.html   # Tarjeta con <photo> y <tag-badge>
     ├── layouts/
     │   └── main.html           # Layout base HTML5
+    ├── icons/
+    │   └── clipboard.svg       # Icono SVG inline usado en <tag-badge>
+    ├── public/
+    │   ├── bustatic-icon.svg   # Logo Bustatic y favicon
+    │   └── robots.txt          # Reglas SEO
     ├── styles/
     │   ├── colors.css          # Único archivo con definición de colores en :root
     │   └── main.css            # Estilos estructurales y responsivos globales

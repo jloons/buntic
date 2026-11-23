@@ -14,11 +14,29 @@
 
   <nav class="pagination-bar" aria-label="Paginación del catálogo">
     <if is="props.page.url.prev">
-      <a href="{{props.page.url.prev}}" class="pagination-btn">&larr; Anterior</a>
+      <a href="{{props.page.url.prev}}" class="pagination-btn back">Anterior</a>
     </if>
     <span class="pagination-info">Página {{props.page.currentPage}} de {{props.page.lastPage}}</span>
     <if is="props.page.url.next">
-      <a href="{{props.page.url.next}}" class="pagination-btn">Siguiente &rarr;</a>
+      <a href="{{props.page.url.next}}" class="pagination-btn next">Siguiente</a>
     </if>
+    <style scoped>
+      .next {
+        padding-right: 2rem;
+        clip-path: polygon(0 0, 80% 0, 100% 50%, 80% 100%, 0 100%);
+        transition: padding 0.25s;
+      }
+      .next:hover {
+        padding-inline: 1.5rem 2.5rem;
+      }
+      .back {
+        padding-left: 2rem;  
+        clip-path: polygon(0 50%, 20% 0, 100% 0%, 100% 100%, 20% 100%);
+        transition: padding 0.25s;
+      }
+      .back:hover {
+        padding-inline: 2.5rem 1.5rem;  
+      }
+    </style>
   </nav>
 </layout>

@@ -5,7 +5,7 @@
     <div class="hero-badge">
       <tag-badge><span slot="label">OCI + Podman Demo</span></tag-badge>
     </div>
-    <h1 class="page-title">Catálogo de Alto Rendimiento</h1>
+    <h1 class="page-title">Catálogo Estático</h1>
     <p class="page-subtitle">
       Demostración de generación estática con Bustatic consumiendo servicios externos reales:
       PostgreSQL, Redis, OCI Registry y S3.
@@ -15,7 +15,7 @@
   <section>
     <div class="section-header">
       <h2 class="section-title">Productos Destacados</h2>
-      <a href="/catalog" class="view-all-link">Ver catálogo completo &rarr;</a>
+      <a href="/catalog" class="view-all-link">Ver catálogo completo</a>
     </div>
 
     <div class="product-grid">
@@ -34,7 +34,6 @@
     .hero-banner {
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
-      border-radius: 12px;
       padding: 2.5rem 2rem;
       display: flex;
       flex-direction: column;
@@ -52,6 +51,11 @@
     .view-all-link {
       font-weight: 600;
       font-size: 0.95rem;
+      color: var(--color-accent-contrast);
+      transition: scale 0.25s;
+    }
+    .view-all-link:hover {
+      scale: 1.1;
     }
   </style>
 </layout>
