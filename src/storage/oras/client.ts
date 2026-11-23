@@ -1,3 +1,4 @@
+import { isPathInside } from "../../utils/paths.ts";
 import { AuthManager } from "./auth.ts";
 import {
   buildManifest,
@@ -48,6 +49,19 @@ export class OrasClient {
     const cleanHost = host.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
     const scheme = this.insecure ? "http" : "https";
     return `${scheme}://${cleanHost}`;
+  }
+
+  private buildRepoUrl(ref: OCIReference, suffix: string): string {
+    return `${this.getBaseUrl(ref.registry)}/v2/${ref.repository}${suffix}`;
+  }
+
+  private async assertOk(res: Response, action: string, includeBody = false): Promise<void> {
+    if (res.ok) return;
+    if (includeBody) {
+      const errText = await res.text();
+      throw new Error(`${action}: HTTP ${res.status} - ${errText}`);
+    }
+    throw new Error(`${action}: HTTP ${res.status} ${res.statusText}`);
   }
 
   /**
@@ -130,8 +144,7 @@ export class OrasClient {
     digest: string
   ): Promise<boolean> {
     const ref = this.resolveRef(target);
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/blobs/${digest}`;
+    const url = this.buildRepoUrl(ref, `/blobs/${digest}`);
     const scope = `repository:${ref.repository}:pull`;
 
     const res = await this.request(url, { method: "HEAD" }, scope);
@@ -146,16 +159,11 @@ export class OrasClient {
     digest: string
   ): Promise<Response> {
     const ref = this.resolveRef(target);
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/blobs/${digest}`;
+    const url = this.buildRepoUrl(ref, `/blobs/${digest}`);
     const scope = `repository:${ref.repository}:pull`;
 
     const res = await this.request(url, { method: "GET" }, scope);
-    if (!res.ok) {
-      throw new Error(
-        `Failed to get blob ${digest}: HTTP ${res.status} ${res.statusText}`
-      );
-    }
+    await this.assertOk(res, `Failed to get blob ${digest}`);
     return res;
   }
 
@@ -176,7 +184,7 @@ export class OrasClient {
     }
 
     const base = this.getBaseUrl(ref.registry);
-    const initUrl = `${base}/v2/${ref.repository}/blobs/uploads/`;
+    const initUrl = this.buildRepoUrl(ref, "/blobs/uploads/");
     const scope = `repository:${ref.repository}:pull,push`;
 
     // 1. Initiate upload
@@ -249,8 +257,7 @@ export class OrasClient {
     digest: string
   ): Promise<boolean> {
     const ref = this.resolveRef(target);
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/blobs/${digest}`;
+    const url = this.buildRepoUrl(ref, `/blobs/${digest}`);
     const scope = `repository:${ref.repository}:pull,push,*`;
 
     const res = await this.request(url, { method: "DELETE" }, scope);
@@ -270,8 +277,7 @@ export class OrasClient {
   ): Promise<OCIManifest> {
     const ref = this.resolveRef(target);
     const reference = tagOrDigest || ref.digest || ref.tag || "latest";
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/manifests/${reference}`;
+    const url = this.buildRepoUrl(ref, `/manifests/${reference}`);
     const scope = `repository:${ref.repository}:pull`;
 
     const res = await this.request(
@@ -284,11 +290,7 @@ export class OrasClient {
       scope
     );
 
-    if (!res.ok) {
-      throw new Error(
-        `Failed to get manifest ${reference}: HTTP ${res.status} ${res.statusText}`
-      );
-    }
+    await this.assertOk(res, `Failed to get manifest ${reference}`);
 
     return (await res.json()) as OCIManifest;
   }
@@ -302,8 +304,7 @@ export class OrasClient {
     manifest: OCIManifest
   ): Promise<{ digest: string }> {
     const ref = this.resolveRef(target);
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/manifests/${tagOrDigest}`;
+    const url = this.buildRepoUrl(ref, `/manifests/${tagOrDigest}`);
     const scope = `repository:${ref.repository}:pull,push`;
 
     const body = JSON.stringify(manifest);
@@ -339,16 +340,11 @@ export class OrasClient {
    */
   async getTags(target: string | OCIReference): Promise<string[]> {
     const ref = this.resolveRef(target);
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/tags/list`;
+    const url = this.buildRepoUrl(ref, "/tags/list");
     const scope = `repository:${ref.repository}:pull`;
 
     const res = await this.request(url, {}, scope);
-    if (!res.ok) {
-      throw new Error(
-        `Failed to list tags for ${ref.repository}: HTTP ${res.status} ${res.statusText}`
-      );
-    }
+    await this.assertOk(res, `Failed to list tags for ${ref.repository}`);
 
     const data = (await res.json()) as { tags?: string[] };
     return data.tags || [];
@@ -362,8 +358,7 @@ export class OrasClient {
     tagOrDigest: string
   ): Promise<boolean> {
     const ref = this.resolveRef(target);
-    const base = this.getBaseUrl(ref.registry);
-    const url = `${base}/v2/${ref.repository}/manifests/${tagOrDigest}`;
+    const url = this.buildRepoUrl(ref, `/manifests/${tagOrDigest}`);
     const scope = `repository:${ref.repository}:pull,push,*`;
 
     const res = await this.request(url, { method: "DELETE" }, scope);
@@ -467,6 +462,12 @@ export class OrasClient {
         layer.annotations?.[ANNOTATIONS.TITLE] ||
         layer.digest.replace("sha256:", "");
       const outPath = join(options.outdir, title);
+
+      if (!isPathInside(options.outdir, outPath) || outPath === join(options.outdir)) {
+        throw new Error(
+          `[Bustatic Security Error] Unsafe OCI layer title "${title}" escapes output directory "${options.outdir}".`
+        );
+      }
 
       const res = await this.getBlobStream(ref, layer.digest);
       if (!res.body) {

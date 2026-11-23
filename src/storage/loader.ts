@@ -1,6 +1,7 @@
 import { join, basename, extname } from "node:path";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import type { ResolvedConfig, StorageAssetResult, StorageLoaderFn } from "../types.ts";
+import { logError, logWarn } from "../utils/logger.ts";
 
 export interface LoadedStorage {
   name: string;
@@ -40,8 +41,8 @@ export class StorageManager {
         const loaderFn = mod.default || mod.getAsset || mod.loader;
 
         if (typeof loaderFn !== "function") {
-          console.warn(
-            `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Storage loader "${entry}" in "${this.config.storageDir}" must export a default function. Skipping.`
+          logWarn(
+            `Storage loader "${entry}" in "${this.config.storageDir}" must export a default function. Skipping.`
           );
           continue;
         }
@@ -51,11 +52,8 @@ export class StorageManager {
           filePath: fullPath,
           loaderFn,
         });
-      } catch (err: any) {
-        console.error(
-          `\x1b[31m[Bustatic Error]\x1b[0m Failed to load storage loader "${entry}":`,
-          err?.message || err
-        );
+      } catch (err: unknown) {
+        logError(`Failed to load storage loader "${entry}"`, err);
         throw err;
       }
     }
@@ -76,6 +74,11 @@ export class StorageManager {
       return names[0];
     }
     return undefined;
+  }
+
+  public invalidate(): void {
+    this.initialized = false;
+    this.storages.clear();
   }
 
   public async fetchAsset(key: string, storageName?: string): Promise<StorageAssetResult> {
@@ -108,18 +111,15 @@ export class StorageManager {
     try {
       const rawResult = await storage.loaderFn(key);
       return normalizeStorageResult(rawResult, key, targetStorage);
-    } catch (err: any) {
-      console.error(
-        `\x1b[31m[Bustatic Error]\x1b[0m Error fetching asset "${key}" from storage "${targetStorage}":`,
-        err?.message || err
-      );
+    } catch (err: unknown) {
+      logError(`Error fetching asset "${key}" from storage "${targetStorage}"`, err);
       throw err;
     }
   }
 }
 
 async function normalizeStorageResult(
-  result: any,
+  result: unknown,
   key: string,
   storageName: string
 ): Promise<StorageAssetResult> {
@@ -140,13 +140,17 @@ async function normalizeStorageResult(
   }
 
   // BunFile object (e.g. s3.file(key))
-  if (typeof result === "object" && typeof result.bytes === "function") {
-    const bytes = await result.bytes();
+  if (typeof result === "object" && "bytes" in result && typeof (result as { bytes: unknown }).bytes === "function") {
+    const fileLike = result as {
+      bytes: () => Promise<Uint8Array | ArrayBuffer>;
+      stat?: () => Promise<{ etag?: string; type?: string } | null>;
+    };
+    const bytes = await fileLike.bytes();
     let etag: string | undefined;
     let contentType: string | undefined;
-    if (typeof result.stat === "function") {
+    if (typeof fileLike.stat === "function") {
       try {
-        const st = await result.stat();
+        const st = await fileLike.stat();
         etag = st?.etag;
         contentType = st?.type;
       } catch {
@@ -161,22 +165,25 @@ async function normalizeStorageResult(
   }
 
   // Object with bytes property: { bytes, etag, contentType }
-  if (typeof result === "object" && result.bytes) {
+  if (typeof result === "object" && "bytes" in result && (result as { bytes: unknown }).bytes) {
+    const assetObj = result as {
+      bytes: Uint8Array | ArrayBuffer | ArrayLike<number>;
+      etag?: string;
+      contentType?: string;
+    };
     let bytes: Uint8Array;
-    if (result.bytes instanceof Uint8Array) {
-      bytes = result.bytes;
-    } else if (result.bytes instanceof ArrayBuffer) {
-      bytes = new Uint8Array(result.bytes);
-    } else if (typeof result.bytes === "function") {
-      bytes = await result.bytes();
+    if (assetObj.bytes instanceof Uint8Array) {
+      bytes = assetObj.bytes;
+    } else if (assetObj.bytes instanceof ArrayBuffer) {
+      bytes = new Uint8Array(assetObj.bytes);
     } else {
-      bytes = new Uint8Array(result.bytes);
+      bytes = new Uint8Array(assetObj.bytes);
     }
 
     return {
       bytes,
-      etag: result.etag || undefined,
-      contentType: result.contentType || undefined,
+      etag: assetObj.etag || undefined,
+      contentType: assetObj.contentType || undefined,
     };
   }
 

@@ -1,6 +1,7 @@
 import { resolve, join, dirname, basename } from "node:path";
 import { existsSync, statSync } from "node:fs";
 import type { BustaticConfig, ResolvedConfig } from "./types.ts";
+import { registerBustaticModuleResolver } from "./runtime.ts";
 
 export function defineConfig(config: BustaticConfig): BustaticConfig {
   return config;
@@ -55,13 +56,13 @@ export function findProjectRoot(cliTarget?: string, startCwd = process.cwd()): s
   }
 
   throw new Error(
-    `[Bustatic Error]: No se pudo encontrar la raíz de un proyecto Bustatic.\n` +
-    `  Buscado en: ${startCwd} (y directorios superiores)\n\n` +
-    `👉 ¿Cómo solucionarlo?\n` +
-    `  1. Asegúrate de tener una carpeta "pages/" o "src/pages/" con al menos un archivo .html.\n` +
-    `  2. O especifica la ruta de tu proyecto explícitamente:\n` +
-    `     $ bustatic dev <directorio>   (ej: bustatic dev examples/simple)\n` +
-    `  3. O crea un archivo de configuración "bustatic.config.json".`
+    `[Bustatic Error]: Could not find a Bustatic project root.\n` +
+    `  Searched in: ${startCwd} (and parent directories)\n\n` +
+    `👉 How to fix this:\n` +
+    `  1. Ensure you have a "pages/" or "src/pages/" directory with at least one .html file.\n` +
+    `  2. Or pass the project path explicitly:\n` +
+    `     $ bustatic dev <directory>   (e.g. bustatic dev examples/simple)\n` +
+    `  3. Or create a "bustatic.config.ts" / "bustatic.config.json" configuration file (or run "bustatic init").`
   );
 }
 
@@ -78,9 +79,11 @@ export async function resolveConfig(
   const jsonConfigPath = join(root, "bustatic.config.json");
 
   if (existsSync(tsConfigPath)) {
+    registerBustaticModuleResolver(root);
     const mod = await import(tsConfigPath);
     userConfig = mod.default || mod;
   } else if (existsSync(jsConfigPath)) {
+    registerBustaticModuleResolver(root);
     const mod = await import(jsConfigPath);
     userConfig = mod.default || mod;
   } else if (existsSync(jsonConfigPath)) {

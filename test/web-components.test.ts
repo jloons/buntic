@@ -106,6 +106,8 @@ describe("Template Engine Declarative Shadow DOM Injection", () => {
     componentsDir: join(exampleRoot, "components"),
     dataDir: join(exampleRoot, "data"),
     publicDir: join(exampleRoot, "public"),
+    storageDir: join(exampleRoot, "storage"),
+    cacheDir: join(exampleRoot, ".bustatic/cache/images"),
     outDir: join(exampleRoot, "dist"),
     minify: false,
     port: 3000,
@@ -370,9 +372,12 @@ describe("Builder Collision Prevention", () => {
       componentsDir: join(testRoot, "components"),
       dataDir: join(testRoot, "data"),
       publicDir: join(testRoot, "public"),
+      storageDir: join(testRoot, "storage"),
+      cacheDir: join(testRoot, ".bustatic/cache/images"),
       outDir: join(testRoot, "dist"),
       minify: false,
       port: 3000,
+      cssStrategy: "inline",
     };
 
     const builder = new Builder(testConfig);
@@ -398,9 +403,12 @@ describe("Builder Collision Prevention", () => {
         componentsDir: join(testRoot, "components"),
         dataDir: join(testRoot, "data"),
         publicDir: join(testRoot, "public"),
+        storageDir: join(testRoot, "storage"),
+        cacheDir: join(testRoot, ".bustatic/cache/images"),
         outDir: join(testRoot, "dist"),
         minify: false,
         port: 3000,
+        cssStrategy: "inline",
       };
 
       const builder = new Builder(testConfig);

@@ -31,7 +31,7 @@ describe("Root Discovery & Actionable Errors", () => {
     try {
       expect(() => {
         findProjectRoot(".", emptyDir);
-      }).toThrow("No se pudo encontrar la raíz de un proyecto Bustatic");
+      }).toThrow("Could not find a Bustatic project root");
     } finally {
       rmSync(emptyDir, { recursive: true, force: true });
     }

@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import type { PageRouteInfo, ResolvedConfig, FeedItem } from "../types.ts";
+import type { PageRouteInfo, ResolvedConfig } from "../types.ts";
+import { escapeXml } from "../utils/html.ts";
 
 export interface ResolvedFeedEntry {
   title: string;
@@ -93,7 +94,7 @@ export function generateRss2Xml(
     <link>${escapeXml(siteUrl || "/")}</link>
     <description>${escapeXml(description)}</description>
     <lastBuildDate>${now}</lastBuildDate>
-    <atom:link href="${escapeXml(siteUrl)}/rss.xml" rel="self" type="application/rss+xml"/>
+    <atom:link href="${escapeXml(siteUrl)}/${escapeXml(rssFilename)}" rel="self" type="application/rss+xml"/>
 ${itemsXml.join("\n")}
   </channel>
 </rss>
@@ -143,17 +144,8 @@ export function generateAtomXml(
   <title>${escapeXml(title)}</title>
   <updated>${updated}</updated>
   <link href="${escapeXml(siteUrl || "/")}" rel="alternate"/>
-  <link href="${escapeXml(siteUrl)}/atom.xml" rel="self" type="application/atom+xml"/>
+  <link href="${escapeXml(siteUrl)}/${escapeXml(atomFilename)}" rel="self" type="application/atom+xml"/>
 ${entriesXml.join("\n")}
 </feed>
 `;
-}
-
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }

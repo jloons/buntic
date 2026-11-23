@@ -4,14 +4,14 @@
 
 Inspirado en la simplicidad de la web y el rendimiento de Bun, **Bustatic** te permite construir sitios web modernos utilizando exclusivamente **HTML estándar, CSS, JavaScript/TypeScript, Web Components, SQL y almacenamiento en la nube**.
 
-Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megabytes y con **cero dependencias externas**.
+Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megabytes, sin `package.json` obligatorio en tus sitios y con **cero dependencias externas**.
 
 ---
 
 ## ✨ Características Principales
 
-- ⚡ **100% Nativo de Bun:** Aprovecha al máximo `Bun.build`, `Bun.serve`, `Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, y `Bun.redis`.
-- 📦 **Cero Dependencias Externas:** Cero paquetes de npm requeridos.
+- ⚡ **100% Nativo de Bun (`>=1.4.0`):** Aprovecha al máximo `Bun.build`, `Bun.serve`, `Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, y `Bun.redis`.
+- 📦 **Cero Dependencias Externas y Sin `package.json`:** Instala Bustatic una sola vez de forma global y crea proyectos limpios con solo HTML, CSS, TypeScript y `tsconfig.json`.
 - 🖼️ **Pipeline de Imágenes Nativo (`<photo>`):** Compresión automática a WebP a velocidad C++, cálculo de dimensiones anti-CLS y generación responsiva de `srcset` y `sizes`.
 - 🗄️ **Storage Loaders Remotos (`storage/`):** Integración nativa con **Amazon S3 / R2 / MinIO** y servidores **OCI Registry / Docker Registry** vía `OrasClient` y `createOrasStorage` con versionado por tags y caché inmutable persistente por ETag/Digest en `.bustatic/cache/images`.
 - 🔍 **Suite SEO Out-of-the-Box:** Componente `<seo>`, generación dinámica de `sitemap.xml`, `robots.txt` configurable y feeds RSS 2.0 y Atom 1.0.
@@ -26,24 +26,41 @@ Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megaby
 
 ## 🚀 Inicio Rápido
 
-### 1. Ejecución con Bunx
-Puedes probar un proyecto existente sin instalar nada:
-```bash
-bunx bustatic dev
-```
+Requiere [Bun](https://bun.sh) `>=1.4.0`.
 
-### 2. Instalación Global
+### 1. Instalación Global (Recomendada — sin `package.json`)
 ```bash
 bun add -g bustatic
-bustatic --help
 ```
 
-### 3. En un proyecto local
+Crea un proyecto nuevo desde cualquier directorio:
+```bash
+# Plantilla en blanco por defecto (blank)
+bustatic init mi-sitio
+
+# O usando la plantilla multipágina (simple)
+bustatic init mi-sitio --template simple
+
+cd mi-sitio
+bustatic dev
+```
+
+`bustatic init` genera un proyecto limpio **sin `package.json` ni `node_modules`**, incluyendo:
+- `tsconfig.json` y definiciones de tipos locales en `.bustatic/types/` (autocompletado completo para `import { defineConfig } from "bustatic"` sin instalar dependencias en el proyecto).
+- La skill de Bustatic para agentes de IA en `.agents/skills/bustatic/` (omitible con `--no-skills`).
+
+### 2. Ejecución directa con `bunx`
+```bash
+bunx bustatic init mi-sitio
+bunx bustatic dev mi-sitio
+```
+
+### 3. Uso local opcional en un proyecto con `package.json`
+Si prefieres fijar la versión de Bustatic por proyecto:
 ```bash
 bun add -d bustatic
 ```
 
-Añade los comandos en `package.json`:
 ```json
 {
   "scripts": {
@@ -67,13 +84,13 @@ mi-sitio/
 │   ├── layouts/          # Layouts reutilizables (main.html) con <slot>
 │   ├── components/       # Componentes HTML y Web Components (counter.ts)
 │   ├── data/             # Almacén de datos (SQLite, Postgres, JSON, TS)
-│   ├── storage/          # Loaders de objetos remotos (S3, Cloudflare R2, MinIO)
+│   ├── storage/          # Loaders de objetos remotos (S3, Cloudflare R2, MinIO, OCI)
 │   ├── styles/           # Hojas de estilo globales (main.css)
 │   └── public/           # Archivos estáticos copiados directamente a dist/
-├── docs/                 # Documentación técnica adicional (opcional)
-├── scripts/              # Scripts auxiliares del proyecto (opcional)
+├── .agents/skills/       # Skill de Bustatic instalada por `bustatic init`
 ├── dist/                 # Carpeta de salida compilada
-└── bustatic.config.ts    # Configuración de URLs, SEO, feeds y almacenamiento
+├── bustatic.config.ts    # Configuración de URLs, SEO, feeds y almacenamiento
+└── tsconfig.json         # Configuración TypeScript (tipos en .bustatic/types/)
 ```
 
 ---
@@ -81,27 +98,27 @@ mi-sitio/
 ## 📚 Documentación Técnica
 
 ### 🚀 Primeros Pasos
-- [Guía de Inicio Rápido](docs/getting-started.md)
-- [Referencia del CLI](docs/cli.md)
-- [Roadmap del Proyecto](ROADMAP.md)
-- [Ejemplo Simple (Plantillas y Web Components)](examples/simple/README.md)
-- [Ejemplo Catalog (OCI Registry, S3, Postgres, Redis y Podman)](examples/catalog/README.md)
+- [Guía de Inicio Rápido](https://github.com/jloons/bustatic/blob/main/docs/getting-started.md)
+- [Referencia del CLI](https://github.com/jloons/bustatic/blob/main/docs/cli.md)
+- [Roadmap del Proyecto](https://github.com/jloons/bustatic/blob/main/ROADMAP.md)
+- [Ejemplo Simple (Plantillas y Web Components)](https://github.com/jloons/bustatic/blob/main/examples/simple/README.md)
+- [Ejemplo Catalog (OCI Registry, S3, Postgres, Redis y Podman)](https://github.com/jloons/bustatic/blob/main/examples/catalog/README.md)
 
 ### 🎨 Fundación y Plantillas (Fase 0)
-- [Guía de Plantillas y Componentes](docs/templating.md)
-- [Estilos Scoped y Grafo de Dependencias CSS](docs/scoped-css.md)
-- [Web Components Nativos y Declarative Shadow DOM](docs/web-components.md)
+- [Guía de Plantillas y Componentes](https://github.com/jloons/bustatic/blob/main/docs/templating.md)
+- [Estilos Scoped y Grafo de Dependencias CSS](https://github.com/jloons/bustatic/blob/main/docs/scoped-css.md)
+- [Web Components Nativos y Declarative Shadow DOM](https://github.com/jloons/bustatic/blob/main/docs/web-components.md)
 
 ### 📊 Enrutamiento y Datos (Fase 1)
-- [Enrutamiento Basado en Archivos y Páginas Dinámicas](docs/routing-and-pages.md)
-- [Datos, Loaders y Variables de Entorno](docs/data-and-loaders.md)
-- [Motores SQL Nativos (`bun:sqlite` y `Bun.sql`)](docs/databases-sql.md)
-- [Sistema de Paginación Automática](docs/pagination.md)
+- [Enrutamiento Basado en Archivos y Páginas Dinámicas](https://github.com/jloons/bustatic/blob/main/docs/routing-and-pages.md)
+- [Datos, Loaders y Variables de Entorno](https://github.com/jloons/bustatic/blob/main/docs/data-and-loaders.md)
+- [Motores SQL Nativos (`bun:sqlite` y `Bun.sql`)](https://github.com/jloons/bustatic/blob/main/docs/databases-sql.md)
+- [Sistema de Paginación Automática](https://github.com/jloons/bustatic/blob/main/docs/pagination.md)
 
 ### 🖼️ Assets, Cloud y SEO (Fase 2)
-- [Optimización de Imágenes con `<photo>`](docs/assets-and-images.md)
-- [Storage Loaders Remotos (S3, R2, MinIO)](docs/storage-loaders.md)
-- [Suite SEO, Metadatos Sociales y Feeds](docs/seo.md)
+- [Optimización de Imágenes con `<photo>`](https://github.com/jloons/bustatic/blob/main/docs/assets-and-images.md)
+- [Storage Loaders Remotos (S3, R2, MinIO y OCI)](https://github.com/jloons/bustatic/blob/main/docs/storage-loaders.md)
+- [Suite SEO, Metadatos Sociales y Feeds](https://github.com/jloons/bustatic/blob/main/docs/seo.md)
 
 ---
 
@@ -116,4 +133,4 @@ bun test
 
 ## 📄 Licencia
 
-[MIT](LICENSE)
+[MIT](https://github.com/jloons/bustatic/blob/main/LICENSE)

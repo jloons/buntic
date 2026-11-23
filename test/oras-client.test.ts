@@ -170,7 +170,7 @@ describe("ORAS & OCI Registry Module", () => {
       // Fetch with key
       const result = await loader("product/1/portrait");
       expect(result).toBeDefined();
-      if ("bytes" in result) {
+      if ("bytes" in result && !(result instanceof Response)) {
         expect(result.bytes).toEqual(sampleBlobBytes);
         expect(result.etag).toBe(sampleDigest);
         expect(result.contentType).toBe("image/png");
@@ -185,7 +185,7 @@ describe("ORAS & OCI Registry Module", () => {
       });
 
       const result = await loader("1/portrait:2020");
-      if ("bytes" in result) {
+      if ("bytes" in result && !(result instanceof Response)) {
         expect(result.bytes).toEqual(sampleBlobBytes);
         expect(result.etag).toBe(sampleDigest);
       }

@@ -1,13 +1,13 @@
-# ⚡ Bustatic Simple Example
+# ⚡ Bustatic Simple
 
-Ejemplo sencillo y 100% estático creado con **Bustatic**.
+Sitio multipágina estático creado con **Bustatic** (sin `package.json` ni `node_modules`).
 
 ---
 
 ## 📁 Estructura con `src/`
 
 ```text
-examples/simple/
+mi-sitio/
 ├── src/
 │   ├── pages/         # index.html, about.html, contact.html
 │   ├── layouts/       # main.html
@@ -16,7 +16,7 @@ examples/simple/
 │   ├── styles/        # main.css
 │   └── public/        # robots.txt
 ├── bustatic.config.ts
-└── package.json
+└── tsconfig.json
 ```
 
 ---
@@ -25,8 +25,11 @@ examples/simple/
 
 ```bash
 # Servidor de desarrollo con live-reload
-bun run dev
+bustatic dev
 
 # Compilar para producción en dist/
-bun run build
+bustatic build
+
+# Limpiar dist/ y caché
+bustatic clean
 ```

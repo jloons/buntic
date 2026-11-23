@@ -9,12 +9,10 @@ export interface ProcessedVariant {
 }
 
 export class ImageProcessor {
-  private config: ResolvedConfig;
   public cache: AssetCache;
   private ramCache: Map<string, ProcessedVariant> = new Map();
 
   constructor(config: ResolvedConfig) {
-    this.config = config;
     this.cache = new AssetCache(config.cacheDir);
   }
 
@@ -37,63 +35,37 @@ export class ImageProcessor {
   }): Promise<ProcessedVariant> {
     const { bytes, namespace, keyOrPath, etagOrMtime, targetWidth } = options;
 
-    const hash = this.cache.computeHash([
+    return this.getOrComputeVariant({
       namespace,
-      keyOrPath,
-      etagOrMtime ?? bytes.length,
-      targetWidth ? `${targetWidth}w` : "orig",
-      "webp",
-    ]);
+      hashParts: [
+        namespace,
+        keyOrPath,
+        etagOrMtime ?? bytes.length,
+        targetWidth ? `${targetWidth}w` : "orig",
+        "webp",
+      ],
+      compute: async () => {
+        const originalMeta = await this.getMetadata(bytes);
+        let img = new Bun.Image(bytes);
+        let finalWidth = originalMeta.width;
+        let finalHeight = originalMeta.height;
 
-    const ramKey = `${namespace}:${hash}`;
-    if (this.ramCache.has(ramKey)) {
-      return this.ramCache.get(ramKey)!;
-    }
+        if (targetWidth && targetWidth > 0 && targetWidth < originalMeta.width) {
+          finalWidth = targetWidth;
+          finalHeight = Math.max(1, Math.round((originalMeta.height / originalMeta.width) * targetWidth));
+          img = await img.resize(finalWidth, finalHeight);
+        }
 
-    // Check disk cache
-    const cachedBytes = await this.cache.get(namespace, hash, "webp");
-    if (cachedBytes) {
-      try {
-        const meta = await this.getMetadata(cachedBytes);
-        const result: ProcessedVariant = {
-          bytes: cachedBytes,
-          width: meta.width,
-          height: meta.height,
-          hash,
+        const webpImg = await img.webp();
+        const finalBytes = await webpImg.bytes();
+
+        return {
+          bytes: finalBytes,
+          width: finalWidth,
+          height: finalHeight,
         };
-        this.ramCache.set(ramKey, result);
-        return result;
-      } catch {
-        // If cached file is corrupted, re-process below
-      }
-    }
-
-    // Process with Bun.Image
-    const originalMeta = await this.getMetadata(bytes);
-    let img = new Bun.Image(bytes);
-    let finalWidth = originalMeta.width;
-    let finalHeight = originalMeta.height;
-
-    if (targetWidth && targetWidth > 0 && targetWidth < originalMeta.width) {
-      finalWidth = targetWidth;
-      finalHeight = Math.max(1, Math.round((originalMeta.height / originalMeta.width) * targetWidth));
-      img = await img.resize(finalWidth, finalHeight);
-    }
-
-    const webpImg = await img.webp();
-    const finalBytes = await webpImg.bytes();
-
-    await this.cache.set(namespace, hash, finalBytes, "webp");
-
-    const result: ProcessedVariant = {
-      bytes: finalBytes,
-      width: finalWidth,
-      height: finalHeight,
-      hash,
-    };
-
-    this.ramCache.set(ramKey, result);
-    return result;
+      },
+    });
   }
 
   public async processMultiWidths(options: {
@@ -116,12 +88,10 @@ export class ImageProcessor {
     }
 
     const meta = await this.getMetadata(bytes);
-    // Filter out duplicate widths or widths larger than original
     const sortedWidths = Array.from(new Set(widths))
       .filter((w) => w > 0 && w <= meta.width)
       .sort((a, b) => a - b);
 
-    // If all requested widths were larger than original, use original width
     if (sortedWidths.length === 0) {
       const orig = await this.processImage({
         bytes,
@@ -155,17 +125,42 @@ export class ImageProcessor {
   }): Promise<ProcessedVariant> {
     const { bytes, namespace, keyOrPath, etagOrMtime } = options;
 
-    const hash = this.cache.computeHash([
+    return this.getOrComputeVariant({
       namespace,
-      keyOrPath,
-      etagOrMtime ?? bytes.length,
-      "social-1200x630",
-      "webp",
-    ]);
+      hashParts: [
+        namespace,
+        keyOrPath,
+        etagOrMtime ?? bytes.length,
+        "social-1200x630",
+        "webp",
+      ],
+      compute: async () => {
+        const img = new Bun.Image(bytes);
+        const resized = await img.resize(1200, 630);
+        const webpImg = await resized.webp();
+        const finalBytes = await webpImg.bytes();
 
+        return {
+          bytes: finalBytes,
+          width: 1200,
+          height: 630,
+        };
+      },
+    });
+  }
+
+  private async getOrComputeVariant(options: {
+    namespace: string;
+    hashParts: (string | number | undefined | null)[];
+    compute: () => Promise<{ bytes: Uint8Array; width: number; height: number }>;
+  }): Promise<ProcessedVariant> {
+    const { namespace, hashParts, compute } = options;
+    const hash = this.cache.computeHash(hashParts);
     const ramKey = `${namespace}:${hash}`;
-    if (this.ramCache.has(ramKey)) {
-      return this.ramCache.get(ramKey)!;
+
+    const fromRam = this.ramCache.get(ramKey);
+    if (fromRam) {
+      return fromRam;
     }
 
     const cachedBytes = await this.cache.get(namespace, hash, "webp");
@@ -181,21 +176,17 @@ export class ImageProcessor {
         this.ramCache.set(ramKey, result);
         return result;
       } catch {
-        // fallback to re-process
+        // Re-process if cached file is corrupted
       }
     }
 
-    const img = new Bun.Image(bytes);
-    const resized = await img.resize(1200, 630);
-    const webpImg = await resized.webp();
-    const finalBytes = await webpImg.bytes();
-
-    await this.cache.set(namespace, hash, finalBytes, "webp");
+    const computed = await compute();
+    await this.cache.set(namespace, hash, computed.bytes, "webp");
 
     const result: ProcessedVariant = {
-      bytes: finalBytes,
-      width: 1200,
-      height: 630,
+      bytes: computed.bytes,
+      width: computed.width,
+      height: computed.height,
       hash,
     };
 

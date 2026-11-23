@@ -1,37 +1,25 @@
-import { join, resolve } from "node:path";
 import { existsSync, watch } from "node:fs";
+import { join, resolve } from "node:path";
 import type { Server, ServerWebSocket } from "bun";
-import type { ResolvedConfig } from "../types.ts";
+import type { PageRouteInfo, ResolvedConfig } from "../types.ts";
+import { PhotoProcessor } from "../assets/photo-tag.ts";
+import { detectPublicCollisions } from "../builder/collisions.ts";
+import { executeStaticLoader, findCoLocatedLoader, resolveAllRoutes } from "../router/routes.ts";
+import { SeoMetadataEngine } from "../seo/metadata.ts";
 import { TemplateEngine } from "../template/engine.ts";
 import { isIgnoredPath } from "../template/vfs.ts";
-import { resolveAllRoutes, findCoLocatedLoader } from "../router/routes.ts";
-import { PhotoProcessor } from "../assets/photo-tag.ts";
-import { SeoMetadataEngine } from "../seo/metadata.ts";
-import { generateSitemapXml } from "../seo/sitemap.ts";
-import { generateRobotsTxt } from "../seo/robots.ts";
-import { generateRss2Xml, generateAtomXml } from "../seo/feeds.ts";
-import { detectPublicCollisions } from "../builder/builder.ts";
-
-const LIVE_RELOAD_SCRIPT = `
-<script id="__bustatic_live_reload">
-  (() => {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(\`\${protocol}//\${location.host}/_bustatic/ws\`);
-    ws.onmessage = (event) => {
-      if (event.data === 'reload') {
-        console.log('[bustatic] Change detected. Reloading...');
-        location.reload();
-      }
-    };
-    ws.onclose = () => {
-      setTimeout(() => location.reload(), 1500);
-    };
-  })();
-</script>
-`;
+import { logWarn } from "../utils/logger.ts";
+import {
+  renderDevPage,
+  renderErrorResponse,
+  renderNotFoundResponse,
+  resolveSafeStaticFile,
+  serveFileWithTranspiler,
+  tryServeSeoRoute,
+} from "./dev-helpers.ts";
 
 export interface DevServerInstance {
-  server: Server<any>;
+  server: Server<undefined>;
   port: number;
   stop: () => void;
 }
@@ -44,7 +32,7 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
     photoProcessor.imageProcessor,
     photoProcessor.storageManager
   );
-  const activeSockets = new Set<ServerWebSocket<any>>();
+  const activeSockets = new Set<ServerWebSocket<undefined>>();
 
   // Proactively warn about any public/ file collisions on dev server startup
   (async () => {
@@ -54,12 +42,14 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       const collisions = detectPublicCollisions(config, routes);
       for (const c of collisions) {
         if (c.type === "route") {
-          console.warn(
-            `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Public file "${c.publicPath}" conflicts with page template "${c.conflictWith}" (both resolve to "${c.outputPath}").`
+          logWarn(
+            `Public file "${c.publicPath}" conflicts with page template "${c.conflictWith}" (both resolve to "${c.outputPath}").`,
+            "Bustatic Collision Warning"
           );
         } else {
-          console.warn(
-            `\x1b[33m⚠ [Bustatic Collision Warning]\x1b[0m Public file "${c.publicPath}" conflicts with reserved internal path "${c.conflictWith}".`
+          logWarn(
+            `Public file "${c.publicPath}" conflicts with reserved internal path "${c.conflictWith}".`,
+            "Bustatic Collision Warning"
           );
         }
       }
@@ -68,13 +58,11 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
     }
   })();
 
-  // Debounced file watcher accumulating all changed paths in the batch
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   const pendingChangedPaths = new Set<string>();
 
   const watcher = watch(config.root, { recursive: true }, (_eventType, filename) => {
-    if (!filename) return;
-    if (isIgnoredPath(filename)) return;
+    if (!filename || isIgnoredPath(filename)) return;
 
     const changedPath = resolve(config.root, filename);
     pendingChangedPaths.add(changedPath);
@@ -86,6 +74,9 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       }
       pendingChangedPaths.clear();
       engine.vfs.clearContentCache();
+      photoProcessor.storageManager.invalidate();
+      photoProcessor.emittedAssets.clear();
+      seoEngine.emittedAssets.clear();
 
       for (const socket of activeSockets) {
         socket.send("reload");
@@ -106,28 +97,23 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
     },
     async fetch(req, srv) {
       const url = new URL(req.url);
-      const pathname = decodeURIComponent(url.pathname);
+      let pathname: string;
+      try {
+        pathname = decodeURIComponent(url.pathname);
+      } catch {
+        return new Response("Bad Request", { status: 400 });
+      }
 
-      // WebSocket live reload endpoint
       if (pathname === "/_bustatic/ws") {
         if (srv.upgrade(req)) return;
         return new Response("WebSocket upgrade failed", { status: 400 });
       }
 
       // Serve processed images from photoProcessor / seoEngine in memory
-      if (photoProcessor.emittedAssets.has(pathname)) {
-        const asset = photoProcessor.emittedAssets.get(pathname)!;
-        return new Response(asset.bytes, {
-          headers: {
-            "Content-Type": "image/webp",
-            "Cache-Control": "public, max-age=31536000, immutable",
-          },
-        });
-      }
-
-      if (seoEngine.emittedAssets.has(pathname)) {
-        const asset = seoEngine.emittedAssets.get(pathname)!;
-        return new Response(asset.bytes, {
+      const emittedAsset =
+        photoProcessor.emittedAssets.get(pathname) || seoEngine.emittedAssets.get(pathname);
+      if (emittedAsset) {
+        return new Response(new Uint8Array(emittedAsset.bytes), {
           headers: {
             "Content-Type": "image/webp",
             "Cache-Control": "public, max-age=31536000, immutable",
@@ -136,124 +122,46 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       }
 
       // Serve dynamic SEO files in dev mode
-      if (pathname === "/sitemap.xml") {
-        const globalData = await engine.loadData();
-        const routes = await resolveAllRoutes(config, globalData);
-        const sitemap = generateSitemapXml(routes, config);
-        if (sitemap) {
-          return new Response(sitemap, {
-            headers: { "Content-Type": "application/xml; charset=utf-8" },
-          });
-        }
-      }
-
-      if (pathname === "/robots.txt") {
-        const robots = generateRobotsTxt(config);
-        if (robots) {
-          return new Response(robots, {
-            headers: { "Content-Type": "text/plain; charset=utf-8" },
-          });
-        }
-      }
-
-      if (pathname === "/rss.xml") {
-        const globalData = await engine.loadData();
-        const routes = await resolveAllRoutes(config, globalData);
-        const rss = generateRss2Xml(routes, config);
-        if (rss) {
-          return new Response(rss, {
-            headers: { "Content-Type": "application/xml; charset=utf-8" },
-          });
-        }
-      }
-
-      if (pathname === "/atom.xml") {
-        const globalData = await engine.loadData();
-        const routes = await resolveAllRoutes(config, globalData);
-        const atom = generateAtomXml(routes, config);
-        if (atom) {
-          return new Response(atom, {
-            headers: { "Content-Type": "application/xml; charset=utf-8" },
-          });
-        }
-      }
+      const seoResponse = await tryServeSeoRoute(pathname, config, engine);
+      if (seoResponse) return seoResponse;
 
       // 1. Try matching an exact static HTML page in pagesDir
-      const candidatePagePaths: string[] = [];
       const clean = pathname.replace(/^\/+|\/+$/g, "").replace(/\.html$/, "");
-      if (clean === "" || clean === "index") {
-        candidatePagePaths.push(join(config.pagesDir, "index.html"));
-      } else {
-        candidatePagePaths.push(join(config.pagesDir, `${clean}.html`));
-        candidatePagePaths.push(join(config.pagesDir, clean, "index.html"));
-      }
+      const candidateRelPaths =
+        clean === "" || clean === "index"
+          ? ["index.html"]
+          : [`${clean}.html`, join(clean, "index.html")];
 
-      for (const cand of candidatePagePaths) {
-        if (existsSync(cand)) {
-          try {
-            const raw = await Bun.file(cand).text();
+      for (const relCand of candidateRelPaths) {
+        const cand = resolveSafeStaticFile(config.pagesDir, relCand);
+        if (!cand) continue;
 
-            // Execute co-located loader if present (.data.ts, .data.js, .data.mjs)
-            const loaderPath = findCoLocatedLoader(cand);
-            let props: Record<string, any> = {};
-            let routeSeo: any = undefined;
+        try {
+          const loaderPath = findCoLocatedLoader(cand);
+          let props: Record<string, unknown> = {};
+          let routeSeo = undefined;
 
-            if (loaderPath) {
-              const globalData = await engine.loadData();
-              const mod = await import(`${loaderPath}?t=${Date.now()}`);
-              const handler = mod.default ?? mod.getStaticPaths ?? mod.loader;
-              if (typeof handler === "function") {
-                const result = await handler({
-                  data: globalData,
-                  env: globalData.env || {},
-                });
-                if (result && typeof result === "object" && !Array.isArray(result)) {
-                  if ("props" in result || "seo" in result || "feed" in result) {
-                    props = result.props || {};
-                    routeSeo = result.seo;
-                  } else {
-                    props = result;
-                  }
-                }
-              }
-            }
-
-            let rendered = await engine.renderPage(raw, cand, { props });
-
-            // Process <photo> tags
-            rendered = await photoProcessor.processHtml(rendered, cand);
-
-            const normalizedUrlPath = clean === "" || clean === "index" ? "/" : `/${clean}`;
-
-            // Process SEO
-            rendered = await seoEngine.processSeo(rendered, {
-              templatePath: cand,
-              urlPath: normalizedUrlPath,
-              routeSeo,
+          if (loaderPath) {
+            const globalData = await engine.loadData();
+            const loaderResult = await executeStaticLoader(loaderPath, globalData, {
+              cacheBust: true,
             });
-
-            // Inject live-reload script
-            if (rendered.includes("</body>")) {
-              rendered = rendered.replace("</body>", `${LIVE_RELOAD_SCRIPT}</body>`);
-            } else {
-              rendered += LIVE_RELOAD_SCRIPT;
-            }
-
-            return new Response(rendered, {
-              headers: {
-                "Content-Type": "text/html; charset=utf-8",
-                "Cache-Control": "no-store, no-cache, must-revalidate",
-              },
-            });
-          } catch (err: any) {
-            return new Response(
-              `<h1>[Bustatic Template Error]</h1><pre>${err?.message || err}</pre>`,
-              {
-                status: 500,
-                headers: { "Content-Type": "text/html; charset=utf-8" },
-              }
-            );
+            props = loaderResult.props;
+            routeSeo = loaderResult.seo;
           }
+
+          const normalizedUrlPath = clean === "" || clean === "index" ? "/" : `/${clean}`;
+          return await renderDevPage({
+            templatePath: cand,
+            urlPath: normalizedUrlPath,
+            props,
+            routeSeo,
+            engine,
+            photoProcessor,
+            seoEngine,
+          });
+        } catch (err: unknown) {
+          return renderErrorResponse("[Bustatic Template Error]", err);
         }
       }
 
@@ -266,43 +174,19 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
         const matchedRoute = routes.find((r) => r.urlPath === cleanRequested);
 
         if (matchedRoute) {
-          const raw = await Bun.file(matchedRoute.templateFilePath).text();
-          let rendered = await engine.renderPage(raw, matchedRoute.templateFilePath, {
-            params: matchedRoute.params,
-            props: matchedRoute.props,
-          });
-
-          // Process <photo> tags
-          rendered = await photoProcessor.processHtml(rendered, matchedRoute.templateFilePath);
-
-          // Process SEO
-          rendered = await seoEngine.processSeo(rendered, {
+          return await renderDevPage({
             templatePath: matchedRoute.templateFilePath,
             urlPath: matchedRoute.urlPath,
+            params: matchedRoute.params,
+            props: matchedRoute.props,
             routeSeo: matchedRoute.seo,
-          });
-
-          if (rendered.includes("</body>")) {
-            rendered = rendered.replace("</body>", `${LIVE_RELOAD_SCRIPT}</body>`);
-          } else {
-            rendered += LIVE_RELOAD_SCRIPT;
-          }
-
-          return new Response(rendered, {
-            headers: {
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "no-store, no-cache, must-revalidate",
-            },
+            engine,
+            photoProcessor,
+            seoEngine,
           });
         }
-      } catch (err: any) {
-        return new Response(
-          `<h1>[Bustatic Dynamic Route Error]</h1><pre>${err?.message || err}</pre>`,
-          {
-            status: 500,
-            headers: { "Content-Type": "text/html; charset=utf-8" },
-          }
-        );
+      } catch (err: unknown) {
+        return renderErrorResponse("[Bustatic Dynamic Route Error]", err);
       }
 
       // 3. Try serving generated page-specific scoped CSS (in external mode)
@@ -316,76 +200,28 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
         });
       }
 
-      // 4. Try serving static file from publicDir
-      if (existsSync(config.publicDir)) {
-        const publicFilePath = join(config.publicDir, pathname);
-        if (existsSync(publicFilePath) && !publicFilePath.endsWith("/")) {
-          return serveFileWithTranspiler(publicFilePath);
+      // 4. Try serving static files safely from publicDir, root, or src/
+      const staticCandidates = [
+        resolveSafeStaticFile(config.publicDir, pathname),
+        resolveSafeStaticFile(config.root, pathname),
+        resolveSafeStaticFile(join(config.root, "src"), pathname),
+      ];
+      for (const staticFile of staticCandidates) {
+        if (staticFile && existsSync(staticFile)) {
+          return serveFileWithTranspiler(staticFile);
         }
       }
 
-      // 5. Try serving static asset directly from root or src/ (e.g. /styles/main.css, /components/counter.ts)
-      const rootAssetPath = join(config.root, pathname);
-      if (existsSync(rootAssetPath) && !rootAssetPath.endsWith("/")) {
-        return serveFileWithTranspiler(rootAssetPath);
-      }
-
-      const srcAssetPath = join(config.root, "src", pathname);
-      if (existsSync(srcAssetPath) && !srcAssetPath.endsWith("/")) {
-        return serveFileWithTranspiler(srcAssetPath);
-      }
-
-      // 6. Assisted 404 in Dev Mode with list of available routes
-      let availableRoutesHtml = "";
+      // 5. Assisted 404 in Dev Mode with list of available routes
+      let routes: PageRouteInfo[] = [];
       try {
         const globalData = await engine.loadData();
-        const routes = await resolveAllRoutes(config, globalData);
-        if (routes.length > 0) {
-          availableRoutesHtml = `
-            <h3>Rutas disponibles en este proyecto (${routes.length}):</h3>
-            <ul>
-              ${routes
-                .map(
-                  (r) =>
-                    `<li><a href="${r.urlPath}"><code>${r.urlPath}</code></a> <span style="color:#94a3b8">(${r.patternRelativePath})</span></li>`
-                )
-                .join("")}
-            </ul>
-          `;
-        }
+        routes = await resolveAllRoutes(config, globalData);
       } catch {
         // Ignore errors when listing routes for 404
       }
 
-      const notFoundHtml = `
-        <!doctype html>
-        <html>
-        <head>
-          <title>404 - No Encontrado | Bustatic Dev</title>
-          <style>
-            body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 3rem; }
-            .card { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 2rem; border-radius: 12px; border: 1px solid #334155; }
-            h1 { color: #f43f5e; margin-top: 0; }
-            code { background: #0f172a; padding: 0.2rem 0.4rem; border-radius: 4px; color: #38bdf8; font-family: monospace; }
-            ul { line-height: 1.8; }
-            a { color: #38bdf8; text-decoration: none; }
-            a:hover { text-decoration: underline; }
-          </style>
-        </head>
-        <body>
-          <div class="card">
-            <h1>404 - Página no encontrada</h1>
-            <p>La ruta solicitada <code>${pathname}</code> no coincide con ninguna página o archivo estático.</p>
-            ${availableRoutesHtml}
-          </div>
-        </body>
-        </html>
-      `;
-
-      return new Response(notFoundHtml, {
-        status: 404,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
+      return renderNotFoundResponse(pathname, routes);
     },
   });
 
@@ -397,43 +233,4 @@ export function startDevServer(config: ResolvedConfig): DevServerInstance {
       server.stop();
     },
   };
-}
-
-async function serveFileWithTranspiler(filePath: string): Promise<Response> {
-  const file = Bun.file(filePath);
-
-  if (filePath.endsWith(".ts") || filePath.endsWith(".tsx") || filePath.endsWith(".jsx")) {
-    const transpiler = new Bun.Transpiler({ loader: filePath.endsWith(".tsx") ? "tsx" : "ts" });
-    const code = await file.text();
-    const transpiled = transpiler.transformSync(code);
-    return new Response(transpiled, {
-      headers: {
-        "Content-Type": "application/javascript; charset=utf-8",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-      },
-    });
-  }
-
-  const contentType = getMimeType(filePath);
-  return new Response(file, {
-    headers: {
-      "Content-Type": contentType,
-      "Cache-Control": "no-store, no-cache, must-revalidate",
-    },
-  });
-}
-
-function getMimeType(path: string): string {
-  if (path.endsWith(".html")) return "text/html; charset=utf-8";
-  if (path.endsWith(".css")) return "text/css; charset=utf-8";
-  if (path.endsWith(".js") || path.endsWith(".mjs")) return "application/javascript; charset=utf-8";
-  if (path.endsWith(".json")) return "application/json; charset=utf-8";
-  if (path.endsWith(".png")) return "image/png";
-  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
-  if (path.endsWith(".webp")) return "image/webp";
-  if (path.endsWith(".svg")) return "image/svg+xml";
-  if (path.endsWith(".ico")) return "image/x-icon";
-  if (path.endsWith(".xml")) return "application/xml; charset=utf-8";
-  if (path.endsWith(".txt")) return "text/plain; charset=utf-8";
-  return "application/octet-stream";
 }

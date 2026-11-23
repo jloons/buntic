@@ -34,6 +34,8 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
       componentsDir: join(TEST_DIR, "components"),
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
+      storageDir: join(TEST_DIR, "storage"),
+      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port,
       minify: false,
@@ -93,8 +95,8 @@ describe("DevServer Dynamic Routes & Assisted 404", () => {
     const resNotFound = await fetch(`http://localhost:${port}/articulos/no-existe`);
     expect(resNotFound.status).toBe(404);
     const htmlNotFound = await resNotFound.text();
-    expect(htmlNotFound).toContain("404 - Página no encontrada");
-    expect(htmlNotFound).toContain("Rutas disponibles en este proyecto");
+    expect(htmlNotFound).toContain("404 - Page Not Found");
+    expect(htmlNotFound).toContain("Available routes in this project");
     expect(htmlNotFound).toContain("/articulos/bun-v1");
     expect(htmlNotFound).toContain("/articulos/bustatic-ssg");
   });

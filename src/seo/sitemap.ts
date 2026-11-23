@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import type { PageRouteInfo, ResolvedConfig } from "../types.ts";
+import { escapeXml } from "../utils/html.ts";
 
 export function generateSitemapXml(
   routes: PageRouteInfo[],
@@ -40,13 +41,4 @@ export function generateSitemapXml(
 ${urlsXml.join("\n")}
 </urlset>
 `;
-}
-
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }

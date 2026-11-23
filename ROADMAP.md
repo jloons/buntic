@@ -98,6 +98,8 @@ Consolidación de la plataforma para su adopción a gran escala, extensibilidad 
   - Layouts por defecto configurables para artículos o documentación técnica.
 - [ ] **Compilación a Binario Único (`bun build --compile`):**
   - Capacidad de compilar tanto el CLI como sitios generados en un solo binario autocontenido y ejecutable sin requerir Bun instalado en la máquina destino.
-- [ ] **Publicación Oficial y Herramienta de Scaffolding:**
-  - Publicación del paquete en npm y JSR.
-  - Comando interactivo `bun create bustatic` para inicializar proyectos listos para producción con plantillas predefinidas.
+- [x] **Compilación de Paquete npm y Scaffolding CLI (`bustatic init`):**
+  - Empaquetado compilado en `dist/` (`index.js`, `cli.js` y declaraciones `.d.ts`) manteniendo cero dependencias de producción.
+  - Comando `bustatic init [dir]` con plantillas `blank` (por defecto) y `simple`, sin `package.json`, instalación automática de skills en `.agents/skills/bustatic/` y soporte TypeScript sin `node_modules` vía `.bustatic/types/` + resolver global `Bun.plugin`.
+- [ ] **Publicación en JSR y Scaffolding Interactivo:**
+  - Publicación adicional en JSR y asistente interactivo `bun create bustatic`.

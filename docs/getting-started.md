@@ -6,28 +6,49 @@
 
 ## Requisitos
 
-- Tener instalado [Bun](https://bun.sh) (v1.0 o superior).
+- Tener instalado [Bun](https://bun.sh) (**v1.4.0 o superior**, requerido para `Bun.Image`, `Bun.S3Client`, `Bun.sql` y `Bun.redis`).
 
 ---
 
 ## Instalación
 
-### Uso global desde Bun:
+### Uso global desde Bun (Recomendado — sin `package.json`)
 ```bash
 bun add -g bustatic
 ```
 
-### Uso directo sin instalar (con `bunx`):
+Una vez instalado de forma global, puedes crear y compilar proyectos en cualquier carpeta sin necesidad de `package.json` ni `node_modules`:
+
 ```bash
-bunx bustatic dev
+# Crear un proyecto en blanco (plantilla "blank" por defecto)
+bustatic init mi-sitio
+
+# O crear un proyecto a partir de la plantilla "simple"
+bustatic init mi-sitio --template simple
+
+cd mi-sitio
+bustatic dev
 ```
 
-### Uso local en un proyecto:
+#### ¿Cómo funcionan los imports de `"bustatic"` sin `package.json`?
+Cuando ejecutas `bustatic init`, `bustatic dev` o `bustatic build` desde una instalación global en un proyecto sin `node_modules`:
+1. **En tiempo de ejecución:** El CLI registra un resolver nativo (`Bun.plugin`) que resuelve `import { defineConfig, createOrasStorage } from "bustatic"` automáticamente al paquete global.
+2. **En tu editor (TypeScript):** Bustatic genera y mantiene actualizadas las definiciones de tipos en `.bustatic/types/` (carpeta ignorada por Git) y las enlaza mediante `paths` en `tsconfig.json`.
+3. **Skills para agentes:** `bustatic init` copia automáticamente la skill oficial de Bustatic en `.agents/skills/bustatic/` (puedes omitirlo con `--no-skills`).
+
+### Uso directo sin instalar (con `bunx`)
+```bash
+bunx bustatic init mi-sitio
+bunx bustatic dev mi-sitio
+```
+
+### Uso local opcional en un proyecto con `package.json`
+Si prefieres fijar la versión de Bustatic dentro de un proyecto existente:
 ```bash
 bun add -d bustatic
 ```
 
-Agrega los comandos a tus `scripts` en el `package.json`:
+Agrega los comandos a tus `scripts` en `package.json`:
 ```json
 {
   "scripts": {
@@ -61,16 +82,16 @@ mi-sitio/
 │   │   └── counter.ts
 │   ├── data/             # Almacén de datos (SQLite, Postgres, JSON, TS)
 │   │   └── site.ts
-│   ├── storage/          # Loaders de almacenamiento remoto (S3, Cloudflare R2, MinIO)
+│   ├── storage/          # Loaders de almacenamiento remoto (S3, Cloudflare R2, MinIO, OCI)
 │   │   └── s3.ts
 │   ├── styles/           # Hojas de estilo globales
 │   │   └── main.css
 │   └── public/           # Archivos estáticos copiados directamente a dist/
 │       └── favicon.ico
-├── docs/                 # Documentación adicional del proyecto (opcional)
-├── scripts/              # Scripts auxiliares del proyecto (opcional)
+├── .agents/skills/       # Skill de Bustatic para agentes de IA (creada por `bustatic init`)
 ├── dist/                 # Directorio de salida compilado
-└── bustatic.config.ts    # Configuración del sitio, SEO y feeds
+├── bustatic.config.ts    # Configuración del sitio, SEO y feeds
+└── tsconfig.json         # Configuración de TypeScript
 ```
 
 > [!TIP]
@@ -79,6 +100,13 @@ mi-sitio/
 ---
 
 ## Comandos Principales
+
+### Inicializar un Proyecto Nuevo
+Crea un nuevo proyecto listo para usar sin `package.json`:
+```bash
+bustatic init mi-sitio
+bustatic init mi-sitio --template simple
+```
 
 ### Servidor de Desarrollo con Live-Reload
 Inicia el servidor local en `http://localhost:3000`:

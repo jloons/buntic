@@ -1,6 +1,22 @@
-import { join, relative, dirname, extname, sep } from "node:path";
-import { existsSync, readdirSync, statSync } from "node:fs";
-import type { ResolvedConfig, PageRouteInfo, StaticPathResult, PaginateOptions, PaginatePage } from "../types.ts";
+import { join, relative, sep } from "node:path";
+import { existsSync } from "node:fs";
+import type {
+  FeedItem,
+  PageRouteInfo,
+  PageSeo,
+  PaginateOptions,
+  PaginatePage,
+  ResolvedConfig,
+  StaticPathResult,
+} from "../types.ts";
+import { logError, logWarn } from "../utils/logger.ts";
+import { walkFiles } from "../utils/paths.ts";
+
+export interface StaticLoaderResult {
+  props: Record<string, unknown>;
+  seo?: PageSeo;
+  feed?: FeedItem;
+}
 
 /**
  * Extracts parameter tokens from a route path, e.g. "blog/[slug].html" -> ["slug"]
@@ -39,13 +55,50 @@ export function findCoLocatedLoader(templateFilePath: string): string | null {
 }
 
 /**
+ * Executes a co-located static page data loader (`.data.ts` / `.data.js`) and normalizes
+ * `{ props, seo, feed }` or plain object returns.
+ */
+export async function executeStaticLoader(
+  loaderPath: string,
+  globalData: Record<string, unknown>,
+  options?: { cacheBust?: boolean }
+): Promise<StaticLoaderResult> {
+  const importPath = options?.cacheBust ? `${loaderPath}?t=${Date.now()}` : loaderPath;
+  const mod = await import(importPath);
+  const handler = mod.default ?? mod.getStaticPaths ?? mod.loader;
+
+  if (typeof handler !== "function") {
+    return { props: {} };
+  }
+
+  const result = await handler({
+    data: globalData,
+    env: (globalData.env as Record<string, string>) || {},
+  });
+
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const record = result as Record<string, unknown>;
+    if ("props" in record || "seo" in record || "feed" in record) {
+      return {
+        props: (record.props as Record<string, unknown>) || {},
+        seo: record.seo as PageSeo | undefined,
+        feed: record.feed as FeedItem | undefined,
+      };
+    }
+    return { props: record };
+  }
+
+  return { props: {} };
+}
+
+/**
  * Creates a declarative pagination helper for a given base route URL.
  * Automatically handles page 1 omission for canonical clean URLs.
  */
 export function createPaginator(baseRouteUrl: string) {
   const normalizedBase = baseRouteUrl === "/" ? "" : baseRouteUrl.replace(/\/+$/, "");
 
-  return function paginate<T = any>(
+  return function paginate<T = unknown>(
     items: T[],
     options?: PaginateOptions
   ): StaticPathResult[] {
@@ -96,7 +149,7 @@ export function createPaginator(baseRouteUrl: string) {
  */
 export function validateRouteParams(
   requiredTokens: string[],
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   loaderPath: string
 ): Record<string, string> {
   const cleanParams: Record<string, string> = {};
@@ -107,7 +160,7 @@ export function validateRouteParams(
     if (rawVal === undefined || rawVal === null) {
       throw new Error(
         `[Bustatic Error]: Missing required route parameter "${token}" in loader "${loaderPath}".\n` +
-        `  Provided parameters: ${JSON.stringify(params)}`
+          `  Provided parameters: ${JSON.stringify(params)}`
       );
     }
 
@@ -118,7 +171,6 @@ export function validateRouteParams(
       );
     }
 
-    // Reject characters that break URL paths or directory navigation
     if (/[\/\\?#\0]/.test(strVal)) {
       throw new Error(
         `[Bustatic Error]: Route parameter "${token}" with value "${strVal}" in "${loaderPath}" contains invalid characters (/ \\ ? #).`
@@ -133,9 +185,6 @@ export function validateRouteParams(
 
 /**
  * Builds a clean URL path and relative output file path from a template pattern and parameters.
- * e.g. "blog/[slug].html" with { slug: "post" } -> urlPath: "/blog/post", relOutput: "blog/post/index.html"
- * e.g. "catalogo/[page].html" with { page: "1" } -> urlPath: "/catalogo", relOutput: "catalogo/index.html"
- * e.g. "about.html" -> urlPath: "/about", relOutput: "about.html"
  */
 export function buildCleanUrl(
   patternRelPath: string,
@@ -143,13 +192,11 @@ export function buildCleanUrl(
 ): { urlPath: string; relOutputPath: string } {
   const isDynamic = isDynamicPattern(patternRelPath);
 
-  // Normalize path separators to forward slash
   let pathStr = patternRelPath.split(sep).join("/");
   pathStr = pathStr.replace(/\.html$/, "");
 
-  // Check if the last segment is [page] and its value is "1"
   const isPageParam = pathStr.endsWith("/[page]") || pathStr === "[page]";
-  const isFirstPage = params.page === "1" || params.page === 1;
+  const isFirstPage = String(params.page) === "1";
 
   if (isPageParam && isFirstPage) {
     if (pathStr === "[page]") {
@@ -158,13 +205,11 @@ export function buildCleanUrl(
       pathStr = pathStr.replace(/\/\[page\]$/, "");
     }
   } else {
-    // Substitute all [param] tokens
     for (const [key, val] of Object.entries(params)) {
       pathStr = pathStr.replaceAll(`[${key}]`, val);
     }
   }
 
-  // Root index page
   if (pathStr === "" || pathStr === "index") {
     return {
       urlPath: "/",
@@ -172,15 +217,12 @@ export function buildCleanUrl(
     };
   }
 
-  // Remove trailing /index if present
   let cleanUrl = pathStr;
   if (cleanUrl.endsWith("/index")) {
     cleanUrl = cleanUrl.slice(0, -6);
   }
   cleanUrl = "/" + cleanUrl.replace(/^\/+|\/+$/g, "");
 
-  // Output path: dynamic routes and pagination always use clean folder/index.html
-  // Static pages preserve their folder structure (e.g. about.html or docs/install.html)
   let relOutputPath: string;
   if (isDynamic || isPageParam || patternRelPath.endsWith("index.html")) {
     relOutputPath = pathStr.replace(/^\/+/, "") + "/index.html";
@@ -194,28 +236,161 @@ export function buildCleanUrl(
   };
 }
 
-/**
- * Scans a directory recursively for .html files.
- */
-function findHtmlFiles(dir: string, baseDir = dir): string[] {
-  const results: string[] = [];
-  if (!existsSync(dir)) return results;
+function registerRouteOrThrow(
+  urlRegistry: Map<string, string>,
+  urlPath: string,
+  sourceDesc: string
+): void {
+  if (urlRegistry.has(urlPath)) {
+    throw new Error(
+      `[Bustatic Collision Error]: Duplicate route generated for "${urlPath}".\n` +
+        `  - First generated by: ${urlRegistry.get(urlPath)}\n` +
+        `  - Conflicting with:   ${sourceDesc}`
+    );
+  }
+  urlRegistry.set(urlPath, sourceDesc);
+}
 
-  const entries = readdirSync(dir);
-  for (const entry of entries) {
-    if (entry.startsWith(".")) continue;
+async function resolveStaticRoute(options: {
+  config: ResolvedConfig;
+  templatePath: string;
+  relPattern: string;
+  loaderPath: string | null;
+  globalData: Record<string, unknown>;
+  cacheBust?: boolean;
+  urlRegistry: Map<string, string>;
+}): Promise<PageRouteInfo> {
+  const { config, templatePath, relPattern, loaderPath, globalData, cacheBust, urlRegistry } = options;
 
-    const full = join(dir, entry);
-    const stat = statSync(full);
-
-    if (stat.isDirectory()) {
-      results.push(...findHtmlFiles(full, baseDir));
-    } else if (entry.endsWith(".html")) {
-      results.push(full);
+  let loaderResult: StaticLoaderResult = { props: {} };
+  if (loaderPath) {
+    try {
+      loaderResult = await executeStaticLoader(loaderPath, globalData, { cacheBust });
+    } catch (err: unknown) {
+      logError(`Error executing loader "${relative(config.root, loaderPath)}"`, err);
+      throw err;
     }
   }
 
-  return results;
+  const { urlPath, relOutputPath } = buildCleanUrl(relPattern, {});
+  registerRouteOrThrow(urlRegistry, urlPath, relPattern);
+
+  return {
+    patternRelativePath: relPattern,
+    templateFilePath: templatePath,
+    urlPath,
+    outputFilePath: join(config.outDir, relOutputPath),
+    params: {},
+    props: loaderResult.props,
+    isDynamic: false,
+    seo: loaderResult.seo,
+    feed: loaderResult.feed,
+  };
+}
+
+async function resolveDynamicRoutes(options: {
+  config: ResolvedConfig;
+  templatePath: string;
+  relPattern: string;
+  tokens: string[];
+  loaderPath: string | null;
+  globalData: Record<string, unknown>;
+  cacheBust?: boolean;
+  urlRegistry: Map<string, string>;
+}): Promise<PageRouteInfo[]> {
+  const {
+    config,
+    templatePath,
+    relPattern,
+    tokens,
+    loaderPath,
+    globalData,
+    cacheBust,
+    urlRegistry,
+  } = options;
+
+  if (!loaderPath) {
+    const expected = relPattern.replace(/\.html$/, ".data.ts");
+    throw new Error(
+      `[Bustatic Error]: Dynamic page "${relPattern}" contains parameter(s) [${tokens.join(", ")}], but no co-located loader was found.\n` +
+        `👉 Create "${expected}" exporting a default async function or getStaticPaths().`
+    );
+  }
+
+  const relLoader = relative(config.root, loaderPath);
+  let mod: Record<string, unknown>;
+  try {
+    const importPath = cacheBust ? `${loaderPath}?t=${Date.now()}` : loaderPath;
+    mod = (await import(importPath)) as Record<string, unknown>;
+  } catch (err: unknown) {
+    logError(`Failed to import loader "${relLoader}"`, err);
+    throw err;
+  }
+
+  const handler = mod.default ?? mod.getStaticPaths;
+  if (typeof handler !== "function") {
+    throw new Error(
+      `[Bustatic Error]: Loader "${relLoader}" must export a default function ("export default async function") or "getStaticPaths".`
+    );
+  }
+
+  const basePattern = relPattern.split(sep).join("/").replace(/\.html$/, "");
+  const lastSlash = basePattern.lastIndexOf("/");
+  const baseRouteUrl = lastSlash === -1 ? "/" : "/" + basePattern.slice(0, lastSlash);
+
+  let pathsResult: unknown;
+  try {
+    pathsResult = await handler({
+      data: globalData,
+      env: (globalData.env as Record<string, string>) || {},
+      paginate: createPaginator(baseRouteUrl),
+    });
+  } catch (err: unknown) {
+    logError(`Error executing dynamic loader "${relLoader}"`, err);
+    throw err;
+  }
+
+  if (!Array.isArray(pathsResult)) {
+    throw new Error(
+      `[Bustatic Error]: Dynamic loader "${relLoader}" must return an Array of path objects ({ params, props }). Received: ${typeof pathsResult}.`
+    );
+  }
+
+  if (pathsResult.length === 0) {
+    logWarn(`Dynamic loader "${relLoader}" returned 0 paths. No pages generated for "${relPattern}".`);
+    return [];
+  }
+
+  const resolved: PageRouteInfo[] = [];
+  for (let i = 0; i < pathsResult.length; i++) {
+    const item = pathsResult[i] as StaticPathResult | undefined;
+    if (!item || typeof item !== "object" || !item.params || typeof item.params !== "object") {
+      throw new Error(
+        `[Bustatic Error]: Item at index ${i} in loader "${relLoader}" must be an object with a "params" property.\n` +
+          `  Received: ${JSON.stringify(item)}`
+      );
+    }
+
+    const cleanParams = validateRouteParams(tokens, item.params, relLoader);
+    const { urlPath, relOutputPath } = buildCleanUrl(relPattern, cleanParams);
+    const sourceDesc = `${relLoader} (params: ${JSON.stringify(cleanParams)})`;
+
+    registerRouteOrThrow(urlRegistry, urlPath, sourceDesc);
+
+    resolved.push({
+      patternRelativePath: relPattern,
+      templateFilePath: templatePath,
+      urlPath,
+      outputFilePath: join(config.outDir, relOutputPath),
+      params: cleanParams,
+      props: item.props || {},
+      isDynamic: true,
+      seo: item.seo,
+      feed: item.feed,
+    });
+  }
+
+  return resolved;
 }
 
 /**
@@ -224,12 +399,15 @@ function findHtmlFiles(dir: string, baseDir = dir): string[] {
  */
 export async function resolveAllRoutes(
   config: ResolvedConfig,
-  globalData: Record<string, any>,
+  globalData: Record<string, unknown>,
   options?: { cacheBust?: boolean }
 ): Promise<PageRouteInfo[]> {
-  const htmlFiles = findHtmlFiles(config.pagesDir);
+  const htmlFiles = walkFiles(config.pagesDir, {
+    ignoreDotfiles: true,
+    filter: (_abs, entry) => entry.endsWith(".html"),
+  });
   const routes: PageRouteInfo[] = [];
-  const urlRegistry = new Map<string, string>(); // urlPath -> source identifier for collision detection
+  const urlRegistry = new Map<string, string>();
 
   for (const templatePath of htmlFiles) {
     const relPattern = relative(config.pagesDir, templatePath);
@@ -238,161 +416,30 @@ export async function resolveAllRoutes(
     const loaderPath = findCoLocatedLoader(templatePath);
 
     if (!isDynamic) {
-      // 1. Static page
-      let props: Record<string, any> = {};
-      let seo: any = undefined;
-      let feed: any = undefined;
-
-      if (loaderPath) {
-        try {
-          const importPath = options?.cacheBust ? `${loaderPath}?t=${Date.now()}` : loaderPath;
-          const mod = await import(importPath);
-          const handler = mod.default ?? mod.getStaticPaths ?? mod.loader;
-          if (typeof handler === "function") {
-            const result = await handler({
-              data: globalData,
-              env: globalData.env || {},
-            });
-            if (result && typeof result === "object" && !Array.isArray(result)) {
-              if ("props" in result || "seo" in result || "feed" in result) {
-                props = result.props || {};
-                seo = result.seo;
-                feed = result.feed;
-              } else {
-                props = result;
-              }
-            }
-          }
-        } catch (err: any) {
-          console.error(
-            `\x1b[31m[Bustatic Error]\x1b[0m Error executing loader "${relative(config.root, loaderPath)}":`,
-            err?.message || err
-          );
-          throw err;
-        }
-      }
-
-      const { urlPath, relOutputPath } = buildCleanUrl(relPattern, {});
-
-      // Collision check
-      if (urlRegistry.has(urlPath)) {
-        throw new Error(
-          `[Bustatic Collision Error]: Duplicate route generated for "${urlPath}".\n` +
-          `  - First generated by: ${urlRegistry.get(urlPath)}\n` +
-          `  - Conflicting with:   ${relPattern}`
-        );
-      }
-      urlRegistry.set(urlPath, relPattern);
-
-      routes.push({
-        patternRelativePath: relPattern,
-        templateFilePath: templatePath,
-        urlPath,
-        outputFilePath: join(config.outDir, relOutputPath),
-        params: {},
-        props,
-        isDynamic: false,
-        seo,
-        feed,
-      });
+      routes.push(
+        await resolveStaticRoute({
+          config,
+          templatePath,
+          relPattern,
+          loaderPath,
+          globalData,
+          cacheBust: options?.cacheBust,
+          urlRegistry,
+        })
+      );
     } else {
-      // 2. Dynamic page
-      if (!loaderPath) {
-        const expected = relPattern.replace(/\.html$/, ".data.ts");
-        throw new Error(
-          `[Bustatic Error]: Dynamic page "${relPattern}" contains parameter(s) [${tokens.join(", ")}], but no co-located loader was found.\n` +
-          `👉 Create "${expected}" exporting a default async function or getStaticPaths().`
-        );
-      }
-
-      const relLoader = relative(config.root, loaderPath);
-      let mod: any;
-      try {
-        const importPath = options?.cacheBust ? `${loaderPath}?t=${Date.now()}` : loaderPath;
-        mod = await import(importPath);
-      } catch (err: any) {
-        console.error(
-          `\x1b[31m[Bustatic Error]\x1b[0m Failed to import loader "${relLoader}":`,
-          err?.message || err
-        );
-        throw err;
-      }
-
-      const handler = mod.default ?? mod.getStaticPaths;
-      if (typeof handler !== "function") {
-        throw new Error(
-          `[Bustatic Error]: Loader "${relLoader}" must export a default function ("export default async function") or "getStaticPaths".`
-        );
-      }
-
-      // Compute base route URL for paginator (e.g. "catalogo/[page].html" -> "/catalogo")
-      let basePattern = relPattern.split(sep).join("/").replace(/\.html$/, "");
-      const lastSlash = basePattern.lastIndexOf("/");
-      const baseRouteUrl = lastSlash === -1 ? "/" : "/" + basePattern.slice(0, lastSlash);
-
-      let pathsResult: any;
-      try {
-        pathsResult = await handler({
-          data: globalData,
-          env: globalData.env || {},
-          paginate: createPaginator(baseRouteUrl),
-        });
-      } catch (err: any) {
-        console.error(
-          `\x1b[31m[Bustatic Error]\x1b[0m Error executing dynamic loader "${relLoader}":`,
-          err?.message || err
-        );
-        throw err;
-      }
-
-      if (!Array.isArray(pathsResult)) {
-        throw new Error(
-          `[Bustatic Error]: Dynamic loader "${relLoader}" must return an Array of path objects ({ params, props }). Received: ${typeof pathsResult}.`
-        );
-      }
-
-      if (pathsResult.length === 0) {
-        console.warn(
-          `\x1b[33m⚠ [Bustatic Warning]\x1b[0m Dynamic loader "${relLoader}" returned 0 paths. No pages generated for "${relPattern}".`
-        );
-        continue;
-      }
-
-      for (let i = 0; i < pathsResult.length; i++) {
-        const item = pathsResult[i];
-        if (!item || typeof item !== "object" || !item.params || typeof item.params !== "object") {
-          throw new Error(
-            `[Bustatic Error]: Item at index ${i} in loader "${relLoader}" must be an object with a "params" property.\n` +
-            `  Received: ${JSON.stringify(item)}`
-          );
-        }
-
-        const cleanParams = validateRouteParams(tokens, item.params, relLoader);
-        const { urlPath, relOutputPath } = buildCleanUrl(relPattern, cleanParams);
-
-        const sourceDesc = `${relLoader} (params: ${JSON.stringify(cleanParams)})`;
-
-        if (urlRegistry.has(urlPath)) {
-          throw new Error(
-            `[Bustatic Collision Error]: Duplicate route generated for "${urlPath}".\n` +
-            `  - First generated by: ${urlRegistry.get(urlPath)}\n` +
-            `  - Conflicting with:   ${sourceDesc}`
-          );
-        }
-        urlRegistry.set(urlPath, sourceDesc);
-
-        routes.push({
-          patternRelativePath: relPattern,
-          templateFilePath: templatePath,
-          urlPath,
-          outputFilePath: join(config.outDir, relOutputPath),
-          params: cleanParams,
-          props: item.props || {},
-          isDynamic: true,
-          seo: item.seo,
-          feed: item.feed,
-        });
-      }
+      routes.push(
+        ...(await resolveDynamicRoutes({
+          config,
+          templatePath,
+          relPattern,
+          tokens,
+          loaderPath,
+          globalData,
+          cacheBust: options?.cacheBust,
+          urlRegistry,
+        }))
+      );
     }
   }
 

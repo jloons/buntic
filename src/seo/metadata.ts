@@ -1,9 +1,11 @@
-import { join, resolve, dirname } from "node:path";
 import { existsSync, statSync } from "node:fs";
 import type { ResolvedConfig, PageSeo, SeoImageConfig } from "../types.ts";
-import { ImageProcessor } from "../assets/image-processor.ts";
+import { ImageProcessor, type ProcessedVariant } from "../assets/image-processor.ts";
 import { StorageManager } from "../storage/loader.ts";
 import type { EmittedAsset } from "../assets/photo-tag.ts";
+import { escapeHtml, injectIntoHead, parseHtmlAttributes } from "../utils/html.ts";
+import { getErrorMessage, logWarn } from "../utils/logger.ts";
+import { resolveLocalAssetPath } from "../utils/paths.ts";
 
 export interface HeadSeoData {
   title?: string;
@@ -40,15 +42,8 @@ export class SeoMetadataEngine {
       return { seo: null, cleanHtml: html };
     }
 
-    const attrString = match[1];
-    const attrs: Record<string, string> = {};
-    const re = /([a-zA-Z0-9_\-:@]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(attrString)) !== null) {
-      attrs[m[1]] = m[2] ?? m[3] ?? m[4] ?? "";
-    }
-
-    const cleanHtml = html.replace(match[0], "");
+    const attrs = parseHtmlAttributes(match[1], "");
+    const cleanHtml = html.replace(match[0], () => "");
 
     let imageConfig: string | SeoImageConfig | undefined = attrs.image;
     if (attrs["image-key"] || attrs.key) {
@@ -58,13 +53,17 @@ export class SeoMetadataEngine {
       };
     }
 
+    const rawCard = attrs["twitter-card"] || attrs.twitterCard;
+    const twitterCard: PageSeo["twitterCard"] =
+      rawCard === "summary" || rawCard === "summary_large_image" ? rawCard : undefined;
+
     const seo: PageSeo = {
       title: attrs.title,
       description: attrs.description,
       image: imageConfig,
       url: attrs.url,
       type: attrs.type,
-      twitterCard: (attrs["twitter-card"] as any) || attrs.twitterCard,
+      twitterCard,
     };
 
     return { seo, cleanHtml };
@@ -115,9 +114,10 @@ export class SeoMetadataEngine {
           imgWidth = processed.width;
           imgHeight = processed.height;
         }
-      } catch (err: any) {
-        console.warn(
-          `\x1b[33m⚠ [Bustatic SEO Warning]\x1b[0m Failed to process social image in "${templatePath}": ${err?.message || err}`
+      } catch (err: unknown) {
+        logWarn(
+          `Failed to process social image in "${templatePath}": ${getErrorMessage(err)}`,
+          "Bustatic SEO Warning"
         );
       }
     }
@@ -135,7 +135,23 @@ export class SeoMetadataEngine {
     });
 
     // 5. Inject into <head>
-    return this.injectIntoHead(cleanHtml, metaTags);
+    return injectIntoHead(cleanHtml, metaTags, "prepend");
+  }
+
+  private emitSocialVariant(variant: ProcessedVariant, siteBaseUrl: string) {
+    const outFileName = `assets/seo/${variant.hash}.webp`;
+    const localUrl = `/${outFileName}`;
+    this.emittedAssets.set(localUrl, {
+      outputPath: outFileName,
+      url: localUrl,
+      bytes: variant.bytes,
+    });
+
+    return {
+      url: siteBaseUrl ? `${siteBaseUrl}${localUrl}` : localUrl,
+      width: variant.width,
+      height: variant.height,
+    };
   }
 
   private async resolveAndProcessSocialImage(
@@ -160,7 +176,6 @@ export class SeoMetadataEngine {
     }
 
     if (key) {
-      // Remote storage asset
       const asset = await this.storageManager.fetchAsset(key, storage);
       const storageName = storage || this.storageManager.getDefaultStorageName() || "storage";
 
@@ -171,19 +186,7 @@ export class SeoMetadataEngine {
         etagOrMtime: asset.etag,
       });
 
-      const outFileName = `assets/seo/${variant.hash}.webp`;
-      const localUrl = `/${outFileName}`;
-      this.emittedAssets.set(localUrl, {
-        outputPath: outFileName,
-        url: localUrl,
-        bytes: variant.bytes,
-      });
-
-      return {
-        url: siteBaseUrl ? `${siteBaseUrl}${localUrl}` : localUrl,
-        width: variant.width,
-        height: variant.height,
-      };
+      return this.emitSocialVariant(variant, siteBaseUrl);
     }
 
     if (src) {
@@ -191,14 +194,7 @@ export class SeoMetadataEngine {
         return { url: src, width: 1200, height: 630 };
       }
 
-      let localPath: string;
-      if (src.startsWith("/")) {
-        const fromPublic = join(this.config.publicDir, src.slice(1));
-        localPath = existsSync(fromPublic) ? fromPublic : join(this.config.root, src.slice(1));
-      } else {
-        localPath = resolve(dirname(templatePath), src);
-      }
-
+      const localPath = resolveLocalAssetPath(this.config, src, templatePath);
       if (!existsSync(localPath)) {
         return null;
       }
@@ -213,19 +209,7 @@ export class SeoMetadataEngine {
         etagOrMtime: `${stats.mtimeMs}-${stats.size}`,
       });
 
-      const outFileName = `assets/seo/${variant.hash}.webp`;
-      const localUrl = `/${outFileName}`;
-      this.emittedAssets.set(localUrl, {
-        outputPath: outFileName,
-        url: localUrl,
-        bytes: variant.bytes,
-      });
-
-      return {
-        url: siteBaseUrl ? `${siteBaseUrl}${localUrl}` : localUrl,
-        width: variant.width,
-        height: variant.height,
-      };
+      return this.emitSocialVariant(variant, siteBaseUrl);
     }
 
     return null;
@@ -272,32 +256,4 @@ export class SeoMetadataEngine {
 
     return lines.join("\n");
   }
-
-  private injectIntoHead(html: string, metaTags: string): string {
-    if (!metaTags.trim()) {
-      return html;
-    }
-
-    // If <head> exists, insert before </head>
-    if (/<\/head>/i.test(html)) {
-      return html.replace(/<\/head>/i, `${metaTags}\n  </head>`);
-    }
-
-    // If <html> exists, insert <head>
-    if (/<html\b[^>]*>/i.test(html)) {
-      return html.replace(/(<html\b[^>]*>)/i, `$1\n  <head>\n${metaTags}\n  </head>`);
-    }
-
-    // Prepend to document
-    return `<head>\n${metaTags}\n</head>\n${html}`;
-  }
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }

@@ -8,12 +8,11 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "strict": true,
-    "downlevelIteration": true,
     "skipLibCheck": true,
     "jsx": "preserve",
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["bun-types"]
+    "types": ["bun"]
   },
-  "include": ["src/**/*", "bin/**/*", "test/**/*", "example/**/*"]
+  "include": ["src/**/*", "bin/**/*", "test/**/*", "scripts/**/*"]
 }

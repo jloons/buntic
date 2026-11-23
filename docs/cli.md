@@ -1,14 +1,15 @@
 # Referencia del CLI de Bustatic
 
-La interfaz de línea de comandos de Bustatic permite levantar servidores de desarrollo, compilar sitios estáticos de forma instantánea y gestionar la caché de assets.
+La interfaz de línea de comandos de Bustatic permite inicializar proyectos sin `package.json`, levantar servidores de desarrollo, compilar sitios estáticos de forma instantánea y gestionar la caché de assets.
 
 ---
 
 ## Detección Automática de la Raíz del Proyecto
 
-Bustatic incluye un mecanismo inteligente de **búsqueda ascendente (*upward discovery*)**:
-- Si ejecutas `bustatic dev` o `bustatic build` dentro de cualquier subcarpeta de tu proyecto (por ejemplo en `pages/blog/` o `components/`), el CLI busca hacia arriba hasta encontrar la carpeta raíz que contiene `pages/` o un archivo de configuración (`bustatic.config.*`).
+Bustatic incluye un mecanismo inteligente de **búsqueda ascendente (*upward discovery*)** que **no requiere `package.json`**:
+- Si ejecutas `bustatic dev`, `bustatic build` o `bustatic clean` dentro de cualquier subcarpeta de tu proyecto (por ejemplo en `src/pages/blog/` o `src/components/`), el CLI busca hacia arriba hasta encontrar la carpeta raíz que contiene `src/pages/`, `pages/` o un archivo de configuración (`bustatic.config.*`).
 - Si pasas un directorio explícito (ej. `bustatic dev ./mi-sitio`), Bustatic usará directamente ese directorio.
+- Si el proyecto no tiene `node_modules/bustatic`, el CLI resuelve automáticamente los imports `from "bustatic"` hacia la instalación global y sincroniza las definiciones de tipos en `.bustatic/types/`.
 - Si ejecutas el comando en un directorio que no pertenece a un proyecto Bustatic, recibirás un mensaje de error claro y accionable con los pasos para solucionarlo.
 
 ---
@@ -22,6 +23,24 @@ bustatic <comando> [directorio] [opciones]
 ---
 
 ## Comandos
+
+### `bustatic init [directorio]`
+Inicializa un nuevo proyecto Bustatic sin `package.json` ni `node_modules`, generando `bustatic.config.ts`, `tsconfig.json`, `.gitignore`, `.bustatic/types/` y copiando la skill oficial en `.agents/skills/bustatic/`.
+
+**Opciones:**
+- `-t, --template <nombre>`: Plantilla a utilizar: `blank` (por defecto) o `simple`.
+- `--no-skills`: Omite la copia de las skills de Bustatic en `.agents/skills/bustatic/`.
+- `-f, --force`: Permite inicializar aunque el directorio de destino no esté vacío.
+
+**Ejemplos:**
+```bash
+bustatic init mi-sitio
+bustatic init mi-sitio --template simple
+bustatic init . --force
+bustatic init mi-sitio --no-skills
+```
+
+---
 
 ### `bustatic dev [directorio]`
 Inicia un servidor de desarrollo local con Live-Reload nativo (WebSockets + File Watcher) y procesamiento de imágenes y metadatos SEO al vuelo.
@@ -40,7 +59,7 @@ bustatic dev --clean-cache
 ---
 
 ### `bustatic build [directorio]`
-Compila el sitio estático para producción, optimiza imágenes a WebP, genera metadatos sociales, sitemap.xml, robots.txt y feeds RSS/Atom en la carpeta de salida.
+Compila el sitio estático para producción, optimiza imágenes a WebP, genera metadatos sociales, `sitemap.xml`, `robots.txt` y feeds RSS/Atom en la carpeta de salida.
 
 **Opciones:**
 - `-o, --outdir <directorio>`: Especifica la carpeta de destino (por defecto `dist`).

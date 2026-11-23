@@ -16,7 +16,7 @@ Esta skill proporciona las directrices maestras, sintaxis declarativa y reglas d
 
 ## 🛑 Reglas de Oro de Bustatic
 
-1. **Cero Dependencias Externas:** No instales paquetes de npm (`sharp`, `@aws-sdk`, `pg`, `ioredis`, `better-sqlite3`, etc.). Utiliza exclusivamente las APIs nativas de Bun (`Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, `RedisClient`, `Bun.build`) y los módulos integrados de Bustatic (`createOrasStorage`, `OrasClient`).
+1. **Cero Dependencias Externas ni `package.json` obligatorio:** No instales paquetes de npm (`sharp`, `@aws-sdk`, `pg`, `ioredis`, `better-sqlite3`, etc.). Utiliza exclusivamente las APIs nativas de Bun (`>=1.4.0`: `Bun.Image`, `Bun.S3Client`, `bun:sqlite`, `Bun.sql`, `RedisClient`, `Bun.build`) y los módulos integrados de Bustatic (`defineConfig`, `createOrasStorage`, `OrasClient`). Los proyectos creados con `bustatic init` funcionan directamente con el CLI global y solo necesitan `tsconfig.json` (los tipos se sincronizan automáticamente en `.bustatic/types/`).
 2. **URLs Limpias por Archivo:** Cada archivo en `pages/` genera una URL limpia sin extensión `.html` (ej. `pages/acerca.html` &rarr; `/acerca` &rarr; `dist/acerca/index.html`).
 3. **Usa `&` para estilizar el elemento raíz en Scoped CSS:** Tanto en `<style scoped>` como en archivos `.css` hermanos (`.html` + `.css`), todo selector **sin `&`** (o `:host`) se compila como descendiente (`.bs-xxxx .clase`) y **NO aplica al elemento raíz**. Para estilizar la raíz o sus estados escribe siempre `& { ... }`, `&:hover { ... }`, `&:hover .hijo { ... }` o `&.activo { ... }` — nunca `.clase-raiz { ... }`.
 4. **Regla 1:1 de Web Components:** Un Web Component por archivo (`.ts` o `.js`). El nombre del archivo debe coincidir de forma idéntica con el tag Custom Element (`counter-button.ts` &rarr; `<counter-button>`). Pueden anidarse entre sí con expansión recursiva de Declarative Shadow DOM (DSD).
@@ -333,6 +333,7 @@ export default defineConfig({
 
 | Comando | Descripción |
 | :--- | :--- |
+| `bustatic init [dir]` | Inicializa un nuevo proyecto (`--template blank\|simple`, por defecto `blank`, sin `package.json`) |
 | `bustatic dev [dir]` | Servidor de desarrollo en `http://localhost:3000` con live-reload |
 | `bustatic dev --clean-cache` | Servidor de desarrollo purgando caché previo de imágenes |
 | `bustatic build [dir]` | Compila todo el sitio para producción en `dist/` |
@@ -344,15 +345,15 @@ export default defineConfig({
 
 ## 📖 Referencias Detalladas
 
-Para consultas profundas sobre subsistemas específicos, revisa los documentos en `docs/`:
-- 📑 [Plantillas y Sintaxis](../../../docs/templating.md)
-- 🎨 [Estilos Scoped y Grafo CSS](../../../docs/scoped-css.md)
-- 🧩 [Web Components y Shadow DOM](../../../docs/web-components.md)
-- 🗺️ [Enrutamiento y Rutas Dinámicas](../../../docs/routing-and-pages.md)
-- 📊 [Datos, Loaders y Entorno](../../../docs/data-and-loaders.md)
-- 🗄️ [Motores SQL y Redis Nativos](../../../docs/databases-sql.md)
-- 📑 [Paginación Automática](../../../docs/pagination.md)
-- 🖼️ [Optimización de Imágenes](../../../docs/assets-and-images.md)
-- 🗄️ [Storage Loaders (OCI Registry / ORAS y S3)](../../../docs/storage-loaders.md)
-- 🔍 [Suite SEO y Feeds](../../../docs/seo.md)
-- ⌨️ [Referencia del CLI](../../../docs/cli.md)
+Para consultas profundas sobre subsistemas específicos, revisa la documentación oficial:
+- 📑 [Plantillas y Sintaxis](https://github.com/jloons/bustatic/blob/main/docs/templating.md)
+- 🎨 [Estilos Scoped y Grafo CSS](https://github.com/jloons/bustatic/blob/main/docs/scoped-css.md)
+- 🧩 [Web Components y Shadow DOM](https://github.com/jloons/bustatic/blob/main/docs/web-components.md)
+- 🗺️ [Enrutamiento y Rutas Dinámicas](https://github.com/jloons/bustatic/blob/main/docs/routing-and-pages.md)
+- 📊 [Datos, Loaders y Entorno](https://github.com/jloons/bustatic/blob/main/docs/data-and-loaders.md)
+- 🗄️ [Motores SQL y Redis Nativos](https://github.com/jloons/bustatic/blob/main/docs/databases-sql.md)
+- 📑 [Paginación Automática](https://github.com/jloons/bustatic/blob/main/docs/pagination.md)
+- 🖼️ [Optimización de Imágenes](https://github.com/jloons/bustatic/blob/main/docs/assets-and-images.md)
+- 🗄️ [Storage Loaders (OCI Registry / ORAS y S3)](https://github.com/jloons/bustatic/blob/main/docs/storage-loaders.md)
+- 🔍 [Suite SEO y Feeds](https://github.com/jloons/bustatic/blob/main/docs/seo.md)
+- ⌨️ [Referencia del CLI](https://github.com/jloons/bustatic/blob/main/docs/cli.md)

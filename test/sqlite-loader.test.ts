@@ -29,6 +29,8 @@ describe("Native bun:sqlite Integration with Loaders", () => {
       componentsDir: join(TEST_DIR, "components"),
       dataDir: join(TEST_DIR, "data"),
       publicDir: join(TEST_DIR, "public"),
+      storageDir: join(TEST_DIR, "storage"),
+      cacheDir: join(TEST_DIR, ".bustatic/cache/images"),
       outDir: join(TEST_DIR, "dist"),
       port: 3000,
       minify: false,

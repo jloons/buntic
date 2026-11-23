@@ -197,9 +197,9 @@ export class CssDependencyGraph {
     for (const item of placeholders) {
       if (vfs.hasFile(item.path)) {
         const childCss = await this.flattenCss(item.path, vfs, visited);
-        flattened = flattened.replace(item.full, childCss.trim());
+        flattened = flattened.replace(item.full, () => childCss.trim());
       } else {
-        flattened = flattened.replace(item.full, "");
+        flattened = flattened.replace(item.full, () => "");
       }
     }
 

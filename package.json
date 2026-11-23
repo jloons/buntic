@@ -3,19 +3,28 @@
   "version": "0.3.0",
   "description": "Zero-dependency, blazing-fast static site generator native to Bun",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
-    "bustatic": "./bin/bustatic.ts"
+    "bustatic": "./dist/cli.js"
   },
   "files": [
-    "bin",
-    "src",
+    "dist",
+    "templates",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
+    "build:pkg": "bun run scripts/build-package.ts",
+    "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
+    "prepublishOnly": "bun run build:pkg && bun test",
     "dev": "bun ./bin/bustatic.ts dev examples/simple --port 3333",
     "build": "bun ./bin/bustatic.ts build examples/simple"
   },
@@ -27,9 +36,21 @@
     "htmlrewriter",
     "web-components"
   ],
-  "author": "",
+  "author": "j-loon <joselow.c.m@gmail.com>",
   "license": "MIT",
-  "peerDependencies": {
-    "bun": ">=1.0.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jloons/bustatic.git"
+  },
+  "homepage": "https://github.com/jloons/bustatic#readme",
+  "bugs": {
+    "url": "https://github.com/jloons/bustatic/issues"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.5",
+    "typescript": "^7.0.2"
   }
 }

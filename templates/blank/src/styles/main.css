@@ -1,0 +1,40 @@
+:root {
+  --color-bg: #ffffff;
+  --color-text: #111827;
+  --color-muted: #4b5563;
+  --color-accent: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+main {
+  max-width: 720px;
+  margin: 4rem auto;
+  padding: 0 1.5rem;
+}
+
+.hero h1 {
+  margin-bottom: 0.75rem;
+  color: var(--color-accent);
+}
+
+.hero p {
+  color: var(--color-muted);
+}
+
+code {
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: #f3f4f6;
+  font-size: 0.9em;
+}

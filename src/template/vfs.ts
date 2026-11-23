@@ -14,6 +14,7 @@ export function isIgnoredPath(filePathOrName: string): boolean {
     if (
       seg === "node_modules" ||
       seg === ".git" ||
+      seg === ".agents" ||
       seg === "dist" ||
       seg.startsWith(".bustatic")
     ) {

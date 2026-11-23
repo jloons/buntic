@@ -157,7 +157,7 @@ export class AuthManager {
       if (!res.ok) {
         return undefined;
       }
-      const data = (await res.json()) as any;
+      const data = (await res.json()) as { token?: string; access_token?: string };
       return data.token || data.access_token;
     } catch {
       return undefined;
@@ -194,14 +194,14 @@ export async function loadStoredCredentials(
         }
       } else {
         const cleanHost = registryHostname
-          .replace(/^https?:\/\//i)
+          .replace(/^https?:\/\//i, "")
           .replace(/\/+$/, "");
         for (const [key, value] of Object.entries(auths)) {
           const keyClean = key
-            .replace(/^https?:\/\//i)
+            .replace(/^https?:\/\//i, "")
             .replace(/\/+$/, "");
-          if (keyClean === cleanHost) {
-            const cred = parseAuthEntry(value as any);
+          if (keyClean === cleanHost && value && typeof value === "object") {
+            const cred = parseAuthEntry(value as { auth?: string; identitytoken?: string });
             if (cred) return cred;
           }
         }

@@ -272,18 +272,6 @@ export class WebComponentRegistry {
   }
 }
 
-/**
- * Detects whether a script imports a specific CSS file (e.g. for Shadow DOM use).
- */
-export function scriptImportsCssFile(scriptContent: string, cssFileName: string): boolean {
-  const baseName = cssFileName.replace(/\.css$/, "");
-  const importRegex = new RegExp(
-    `(?:import|require)\\s*(?:[\\s\\S]*?from\\s*)?\\(?\\s*["'][^"']*?\\b${baseName}(?:\\.css)?["']`,
-    "i"
-  );
-  return importRegex.test(scriptContent);
-}
-
 export interface ComponentTriad {
   tag: string;
   scriptPath?: string;
