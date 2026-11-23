@@ -180,7 +180,7 @@ Inyecta en `<head>` el `<title>`, `<link rel="canonical">`, OpenGraph y Twitter 
 - Funciona tanto en **`components/`** (ej. `card.html` + `card.css`) como en **`pages/`** (ej. `index.html` + `index.css` o `[slug].html` + `[slug].css`).
 - **Páginas con `<layout>`:** el CSS hermano y `<style scoped>` al nivel de `<layout>` se vinculan al contenedor padre del `<slot>` del layout (normalmente `<main>`).
 - **Páginas independientes (`<!doctype html>`):** el prólogo `<!doctype html>` se omite automáticamente y el ámbito se aplica al elemento raíz `<html>`.
-- **Orden de cascada:** el `.css` hermano se emite antes que `<style scoped>` inline, por lo que el bloque inline tiene mayor prioridad.
+- **Orden de cascada y proximidad en el DOM:** las reglas scoped se emiten ordenadas de contenedores más externos a más internos (un `<style scoped>` en un elemento hijo/más profundo gana sobre uno de un ancestro externo aunque el externo aparezca al final del HTML). A igual profundidad, se respeta el orden del documento (el `.css` hermano se emite antes que `<style scoped>` inline, por lo que el bloque inline tiene mayor prioridad).
 
 ---
 

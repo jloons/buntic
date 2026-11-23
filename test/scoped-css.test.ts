@@ -245,6 +245,39 @@ describe("Scoped CSS Processor", () => {
       expect(scopedRules.length).toBe(1);
       expect(scopedRules[0]).toContain(".content {");
     });
+
+    test("orders emitted scoped rules by DOM depth so inner/closer blocks override outer blocks even when outer appears later in HTML", () => {
+      const html = `
+        <main>
+          <article class="product-detail">
+            <nav class="breadcrumb">
+              <a href="/catalog" class="breadcrumb-link">Volver</a>
+              <style scoped>
+                .breadcrumb-link { color: green; }
+              </style>
+            </nav>
+            <style scoped>
+              .breadcrumb-link { color: orange; }
+            </style>
+          </article>
+          <style scoped>
+            .breadcrumb-link { color: blue; }
+          </style>
+        </main>
+      `;
+
+      const { html: outputHtml, scopedRules } = extractScopedStyles(html);
+      expect(outputHtml).toMatch(/<main class="bs-[a-z0-9]+">/);
+      expect(outputHtml).toMatch(/<article class="product-detail bs-[a-z0-9]+">/);
+      expect(outputHtml).toMatch(/<nav class="breadcrumb bs-[a-z0-9]+">/);
+      expect(scopedRules.length).toBe(3);
+
+      // Depth order: <main> (depth 1) -> <article> (depth 2) -> <nav> (depth 3)
+      // So the closest/deepest block (green) is emitted LAST and wins in CSS cascade!
+      expect(scopedRules[0]).toContain("color: blue;");
+      expect(scopedRules[1]).toContain("color: orange;");
+      expect(scopedRules[2]).toContain("color: green;");
+    });
   });
 
   describe("Integration with TemplateEngine & Deduplication", () => {

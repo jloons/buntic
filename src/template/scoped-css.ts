@@ -434,6 +434,7 @@ interface TagOpenInfo {
   start: number;
   end: number;
   raw: string;
+  depth: number;
 }
 
 /**
@@ -481,6 +482,7 @@ function findParentTagOfScopedStyle(
           start: match.index,
           end: match.index + fullTag.length,
           raw: fullTag,
+          depth: stack.length + 1,
         });
       }
     }
@@ -516,14 +518,20 @@ function addClassToOpenTag(openTag: string, newClass: string): string {
  * 1. Finds enclosing parent element and adds unique scoped class to its opening tag.
  * 2. Transforms CSS rules with `transformScopedCss`.
  * 3. Removes the `<style scoped>...</style>` block from the HTML.
+ * 4. Orders emitted CSS rules by ascending DOM depth of their parent container
+ *    (shallow/outer ancestors first, deeper/closer descendants later), preserving
+ *    source order on ties so inner scoped styles naturally override outer ones.
  */
 export function extractScopedStyles(
   html: string,
   registry: ScopeRegistry = new ScopeRegistry()
 ): ScopedCssExtraction {
   let currentHtml = html;
-  const scopedRules: string[] = [];
-  const emittedClasses = new Set<string>();
+  const ruleEntries = new Map<
+    string,
+    { css: string; depth: number; order: number }
+  >();
+  let orderCounter = 0;
 
   // Regex to match <style scoped> or <style scoped="..." ...>
   // We process one by one to ensure accurate stack parsing after every mutation
@@ -536,6 +544,7 @@ export function extractScopedStyles(
     const styleStartIndex = match.index;
 
     const parent = findParentTagOfScopedStyle(currentHtml, styleStartIndex);
+    const depth = parent ? parent.depth : 0;
     const scopeClass = registry.getScopeId(cssContent);
 
     if (parent) {
@@ -555,15 +564,26 @@ export function extractScopedStyles(
         currentHtml.slice(styleStartIndex + fullStyleBlock.length);
     }
 
-    // Transform and deduplicate CSS rules
-    if (!emittedClasses.has(scopeClass)) {
-      emittedClasses.add(scopeClass);
+    // Transform and deduplicate CSS rules, tracking deepest parent DOM depth
+    const existing = ruleEntries.get(scopeClass);
+    if (!existing) {
       const transformedCss = transformScopedCss(cssContent, scopeClass);
       if (transformedCss.trim()) {
-        scopedRules.push(transformedCss);
+        ruleEntries.set(scopeClass, {
+          css: transformedCss,
+          depth,
+          order: orderCounter++,
+        });
       }
+    } else if (depth > existing.depth) {
+      existing.depth = depth;
     }
   }
+
+  // Emit outer/shallower scopes before inner/deeper scopes; keep document order on ties
+  const scopedRules = Array.from(ruleEntries.values())
+    .sort((a, b) => a.depth - b.depth || a.order - b.order)
+    .map((entry) => entry.css);
 
   return {
     html: currentHtml,

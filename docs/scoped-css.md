@@ -46,7 +46,8 @@ Puedes colocar un bloque `<style scoped>` dentro de cualquier elemento contenedo
    .bs-a8f3b1 h3 { color: #38bdf8; ... }
    ```
 4. **Deduplicación en Bucles `<each>`:** Si el componente se repite 500 veces dentro de un bucle `<each>`, el bloque de estilos compilado solo se emite **una sola vez**, evitando inflar el HTML.
-5. **Compatibilidad con etiquetas autocerradas y DSD:** El analizador de etiquetas ignora correctamente etiquetas autocerradas (como `<photo ... />`, `<path ... />`) y bloques `<script>` / `<style>` previos (incluyendo los de Declarative Shadow DOM) al determinar el contenedor padre de `<style scoped>`.
+5. **Prioridad por Proximidad / Profundidad en el DOM:** Las reglas scoped se emiten ordenadas de contenedores más externos a más internos (manteniendo el orden del documento en empates). Así, un `<style scoped>` más cercano al elemento (por ejemplo dentro de `<nav>`) siempre sobrescribe a uno de un ancestro más externo (como `<main>`), incluso si el bloque general de la página se escribió al final del archivo.
+6. **Compatibilidad con etiquetas autocerradas y DSD:** El analizador de etiquetas ignora correctamente etiquetas autocerradas (como `<photo ... />`, `<path ... />`) y bloques `<script>` / `<style>` previos (incluyendo los de Declarative Shadow DOM) al determinar el contenedor padre de `<style scoped>`.
 
 ### Regla clave de selectores: `&` vs descendientes
 
