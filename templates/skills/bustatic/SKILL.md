@@ -21,7 +21,7 @@ Esta skill proporciona las directrices maestras, sintaxis declarativa y reglas d
 3. **Usa `&` para estilizar el elemento raíz en Scoped CSS:** Tanto en `<style scoped>` como en archivos `.css` hermanos (`.html` + `.css`), todo selector **sin `&`** (o `:host`) se compila como descendiente (`.bs-xxxx .clase`) y **NO aplica al elemento raíz**. Para estilizar la raíz o sus estados escribe siempre `& { ... }`, `&:hover { ... }`, `&:hover .hijo { ... }` o `&.activo { ... }` — nunca `.clase-raiz { ... }`.
 4. **Regla 1:1 de Web Components:** Un Web Component por archivo (`.ts` o `.js`). El nombre del archivo debe coincidir de forma idéntica con el tag Custom Element (`counter-button.ts` &rarr; `<counter-button>`). Pueden anidarse entre sí con expansión recursiva de Declarative Shadow DOM (DSD).
 5. **Espacios de Nombres Reservados y Acceso a Loaders:** `params`, `props`, `env`, `seo`, `feed`. No los uses como identificadores en `data/*.json`. En plantillas HTML, los datos devueltos por un loader `.data.ts` (estático o dinámico) se consumen siempre bajo `props.*` (ej. `{{ props.product.name }}`, `<each in="props.featured">`, `{{ props.page.currentPage }}`) y los parámetros de ruta bajo `params.*`.
-6. **No uses `<img>` crudo cuando optimices:** Usa `<photo>` para compresión WebP, dimensiones anti-CLS automáticas y `srcset`.
+6. **No uses `<img>` crudo cuando optimices ni `<photo>` para SVG:** Usa `<photo>` exclusivamente para imágenes rasterizadas (compresión WebP, dimensiones anti-CLS automáticas y `srcset`). Para gráficos vectoriales SVG usa `<component src="...svg" />` cuando necesites estilizarlos inline (colores vía `currentColor`, clases o accesibilidad) o `<img src="/icono.svg">` apuntando a `public/` para SVGs estáticos externos.
 7. **No dupliques metadatos en `<head>`:** Usa la etiqueta `<seo>` en la página o el objeto `seo` en el loader hermano para que Bustatic genere los metatags OpenGraph, Twitter y canonical consolidados.
 8. **Tokens de color en variables CSS:** Centraliza colores en un archivo dedicado (ej. `src/styles/colors.css` importado con `@import "./colors.css";` desde `src/styles/main.css`) y evita colores hardcodeados en componentes y páginas.
 
@@ -50,6 +50,9 @@ mi-proyecto/
 │   │   ├── counter.ts    # Lógica cliente del Web Component <counter>
 │   │   ├── counter.html  # Estructura Declarative Shadow DOM
 │   │   └── counter.css   # Estilos encapsulados Shadow DOM (:host o &)
+│   ├── icons/            # Iconos SVG para inclusión inline con <component>
+│   │   ├── clipboard.svg # Icono SVG estándar (fill="currentColor", etc.)
+│   │   └── clipboard.css # CSS hermano scoped para el icono (opcional)
 │   ├── data/             # Almacén global de datos en RAM (JSON, TS, SQL, Redis)
 │   │   └── site.json     # Disponible globalmente como {{ site.title }}
 │   ├── storage/          # Loaders de objetos remotos (S3, R2, MinIO, OCI Registry)
@@ -91,9 +94,15 @@ mi-proyecto/
   <a href="/info">Ver más</a>
 </component>
 
+<!-- Componente SVG inline con fusión de clases, accesibilidad y dimensiones -->
+<component src="../icons/clipboard.svg" class="badge-icon" aria-hidden="true" />
+
 <!-- Web Component cliente interactivo (navegable con Ctrl + Click) -->
 <component src="../components/counter-button.ts" id="contador" />
 ```
+
+> [!NOTE]
+> Cuando se usa `<component src="...svg">`, el SVG se inserta inline en el DOM. Puedes aplicar `<style scoped>` dentro del propio SVG o crear un CSS hermano co-ubicado (`.svg` + `.css`). Además, si se utiliza dentro de la plantilla DSD de un Web Component (`.html`), los estilos scoped se mantienen aislados en el `<template shadowrootmode="open">` sin fugas al `<head>`.
 
 ### 3. Imágenes Optimizadas (`<photo>`)
 Transformada automáticamente a `<img>` con WebP, `loading="lazy"`, `decoding="async"` y dimensiones físicas anti-CLS:

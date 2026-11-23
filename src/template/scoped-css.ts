@@ -41,7 +41,7 @@ export interface RootElementInfo {
  *   without letting attributes swallow trailing "/>" on self-closing non-void tags like <photo ... /> or <path ... />.
  */
 function createHtmlTagRegex(): RegExp {
-  return /<!--[\s\S]*?-->|<!doctype[^>]*>|<script\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/script>|<style\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/style>|<\/([a-zA-Z0-9_-]+)\s*>|<([a-zA-Z0-9_-]+)((?:\s+[^\s"'<>\/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|(?:\x2f(?!>)|[^\s"'=<>`\/])+))?)*)\s*(\/?)>/gi;
+  return /<!--[\s\S]*?-->|<\?xml[\s\S]*?\?>|<!doctype[^>]*>|<script\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/script>|<style\b(?:[^>"']|"[^"]*"|'[^']*')*>[\s\S]*?<\/style>|<\/([a-zA-Z0-9_:-]+)\s*>|<([a-zA-Z0-9_:-]+)((?:\s+[^\s"'<>\/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|(?:\x2f(?!>)|[^\s"'=<>`\/])+))?)*)\s*(\/?)>/gi;
 }
 
 /**
@@ -73,8 +73,8 @@ export function findSingleRootElement(html: string): RootElementInfo | null {
 
     lastIndexChecked = matchEnd;
 
-    // Skip HTML comments and <!doctype ...> prologue
-    if (fullMatch.startsWith("<!--") || /^<!doctype\b/i.test(fullMatch)) {
+    // Skip HTML comments, XML prologues (<?xml ...?>) and <!doctype ...> prologue
+    if (fullMatch.startsWith("<!--") || fullMatch.startsWith("<?xml") || /^<!doctype\b/i.test(fullMatch)) {
       continue;
     }
 
@@ -455,6 +455,7 @@ function findParentTagOfScopedStyle(
     const fullTag = match[0];
     if (
       fullTag.startsWith("<!--") ||
+      fullTag.startsWith("<?xml") ||
       /^<!doctype\b/i.test(fullTag) ||
       /^<(?:script|style)\b/i.test(fullTag)
     ) {
@@ -533,9 +534,9 @@ export function extractScopedStyles(
   >();
   let orderCounter = 0;
 
-  // Regex to match <style scoped> or <style scoped="..." ...>
+  // Regex to match <style scoped> or <style scoped="..." ...> (attribute name, not value)
   // We process one by one to ensure accurate stack parsing after every mutation
-  const scopedTagRegex = /<style\b(?=[^>]*\bscoped\b)[^>]*>([\s\S]*?)<\/style>/i;
+  const scopedTagRegex = /<style\b(?=[^>]*\s+scoped(?=[\s=>]))[^>]*>([\s\S]*?)<\/style>/i;
 
   let match: RegExpExecArray | null;
   while ((match = scopedTagRegex.exec(currentHtml)) !== null) {

@@ -18,6 +18,7 @@ Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megaby
 - 📱 **Tarjetas Sociales Automáticas:** Generación de tarjetas OpenGraph y Twitter Cards a tamaño estándar 1200x630 WebP a partir de imágenes locales o remotas en S3/OCI.
 - 🚀 **Enrutamiento Dinámico, SQL y Redis:** Parámetros en rutas (`pages/[slug].html`), loaders `.data.ts`, integración directa con SQLite, PostgreSQL y Redis, y paginación declarativa.
 - 📑 **Plantillas Estándar:** Usa `<layout>`, `<slot>`, `<each>` y `<if>` directamente en HTML estándar.
+- 🧩 **Componentes SVG Nativos:** Inclusión inline con `<component src="...svg" />`, passthrough de atributos (`class`, `width`, `aria-*`), `<style scoped>`, CSS hermano co-ubicado (`.svg` + `.css`) y compatibilidad con DSD.
 - 🎨 **Estilos Scoped Nativos:** Escribe `<style scoped>` dentro de cualquier elemento con sintaxis `&` o `:host`, deduplicación automática y cero FOUC.
 - 🔄 **Live-Reload Integrado:** Servidor de desarrollo con WebSockets nativos y recarga en caliente automática.
 

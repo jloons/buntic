@@ -10,13 +10,19 @@ Bustatic cuenta con un motor de compilación maduro, cobertura de pruebas comple
 
 - [x] **Motor de Plantillas Estándar:** `<layout>`, `<slot>` y slots con nombre, directiva `<each>` con auto-spread, y renderizado condicional con `<if is="...">` / `<else>`.
 - [x] **Virtual File System (VFS) en RAM:** Indexación instantánea en memoria y resolución de rutas relativas (`./`, `../`) con soporte nativo para navegación `Ctrl + Click` en Visual Studio Code.
-- [x] **Estilos Scoped Nativos y Grafo de Dependencias CSS:** Bloques `<style scoped>` con selector `&` / `:host`, clases deterministas `bs-...`, deduplicación en bucles y resolución de grafos dirigidos de `@import` locales evitando ciclos. Co-ubicación de archivos CSS hermanos (`.html` + `.css`).
+- [x] **Estilos Scoped Nativos y Grafo de Dependencias CSS:** Bloques `<style scoped>` con selector `&` / `:host`, clases deterministas `bs-...`, deduplicación en bucles y resolución de grafos dirigidos de `@import` locales evitando ciclos. Co-ubicación de archivos CSS hermanos (`.html` + `.css` y `.svg` + `.css`) y ordenamiento determinista por proximidad/profundidad en el árbol DOM.
 - [x] **Web Components Nativos + Declarative Shadow DOM (DSD):**
   - Generación de Declarative Shadow DOM con tríadas co-ubicadas (`.ts` + `.html` + `.css`).
   - Anidación recursiva de Web Components dentro de plantillas HTML hermanas y proyección de slots.
+  - Aislamiento de estilos scoped dentro de plantillas DSD (`<template shadowrootmode="open">`) sin fugas al `<head>`.
   - Auto-importación de scripts sin etiquetas `<script>` manuales.
   - Alias de alta productividad `<component src="...ts" />` y `<component src="...ts">...</component>` para navegación rápida en IDE.
   - Validación W3C, prevención de colisiones de etiquetas y alertas en tiempo de compilación.
+- [x] **Componentes SVG Nativos Inline:**
+  - Inclusión declarativa mediante `<component src="...svg" />` con passthrough e interpolación de atributos (`class`, `width`, `height`, `aria-*`, `role`).
+  - Limpieza automática de prólogos XML (`<?xml ...?>`) y declaraciones `<!DOCTYPE ...>`.
+  - Soporte para `<style scoped>` interno y archivos CSS hermanos (`.svg` + `.css`) con selector `&`.
+  - Soporte transparente tanto en HTML estándar como dentro de plantillas Declarative Shadow DOM.
 - [x] **Entorno de Desarrollo Integrado:** Servidor `bustatic dev` con WebSockets nativos de Bun, live-reload automático y transpilación al vuelo de TypeScript y JSX.
 - [x] **Compilador de Producción:** Comando `bustatic build` con minificación y empaquetado ultraveloz mediante `Bun.build`.
 

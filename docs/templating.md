@@ -86,11 +86,18 @@ Un layout es una estructura base HTML (habitualmente en `layouts/`) que envuelve
 
 ---
 
-## 2. Componentes HTML (`<component>`)
+## 2. Componentes y Gráficos SVG (`<component>`)
 
-Los componentes son fragmentos HTML reutilizables. Puedes ubicarlos en `components/` o incluso colocarlos en la misma carpeta de una página.
+Bustatic unifica la inclusión de fragmentos HTML, Web Components y gráficos vectoriales SVG bajo la misma etiqueta `<component src="...">`, diferenciando el comportamiento según la extensión del archivo:
 
-### Definición del Componente (`components/card.html`):
+```text
+<component src="...">
+├── *.html  -> Componente estático HTML renderizado en servidor (+ CSS hermano scoped)
+├── *.svg   -> Gráfico SVG inyectado inline con fusión de atributos (+ CSS hermano scoped)
+└── *.ts    -> Web Component interactivo cliente con Declarative Shadow DOM
+```
+
+### 2.1 Componentes HTML Estáticos (`components/card.html`):
 ```html
 <div class="card">
   <h3>{{ title }}</h3>
@@ -100,8 +107,7 @@ Los componentes son fragmentos HTML reutilizables. Puedes ubicarlos en `componen
   </div>
 </div>
 ```
-
-### Uso con Rutas Relativas y Props:
+Uso:
 ```html
 <component 
   src="../components/card.html" 
@@ -111,8 +117,27 @@ Los componentes son fragmentos HTML reutilizables. Puedes ubicarlos en `componen
 </component>
 ```
 
-> [!TIP]
-> Bustatic soporta tanto rutas relativas explícitas (`../components/card.html`, `./boton.html`) como nombres convencionales (`card.html` o `card`), para que uses el estilo que más te guste.
+### 2.2 Gráficos e Iconos SVG Inline (`icons/*.svg`):
+Al referenciar un archivo `.svg`:
+1. **Inyección Inline Limpia:** elimina automáticamente prólogos XML (`<?xml ...?>`) y doctypes para mantener HTML5 válido.
+2. **Fusión Automática de Atributos:** cualquier atributo pasado a `<component>` (`class`, `width`, `height`, `aria-hidden`, `role`, `style`, etc.) se fusiona directamente en la etiqueta `<svg>` raíz (concatenando clases existentes y reemplazando atributos como dimensiones).
+3. **Estilos Scoped y CSS Hermano:** soporta tanto `<style scoped>` dentro del SVG como un archivo `.css` hermano co-ubicado (`check.svg` + `check.css`).
+4. **Soporte dentro de Shadow DOM DSD:** si se usa dentro de la plantilla de un Web Component (ej. `tag-badge.html`), sus estilos scoped se encapsulan dentro del `<template shadowrootmode="open">`.
+
+```html
+<!-- Inyección inline con dimensiones y accesibilidad -->
+<component src="../icons/clipboard.svg" class="badge-icon" aria-hidden="true" />
+```
+
+### ¿Cuándo usar `<component src="...svg">` vs `src/public/` + `<img>`?
+
+| Caso de Uso | Mecanismo | Motivo |
+| :--- | :--- | :--- |
+| **Iconos pequeños (16–32px), `currentColor`, variables CSS (`--color-*`), animaciones de trazos** | `<component src="../icons/icon.svg" />` *(Inline)* | Hereda el color del texto contenedor (`fill="currentColor"`), cero peticiones HTTP extra, manipulable por CSS. |
+| **Logos, ilustraciones complejas, favicons, gráficos estáticos reutilizados** | `src/public/logo.svg` + `<img src="/logo.svg" />` *(Externo)* | El navegador lo descarga y cachea una sola vez entre páginas, manteniendo el HTML liviano. |
+
+> [!NOTE]
+> La etiqueta `<photo>` está reservada exclusivamente para imágenes rasterizadas (PNG, JPG, WebP) que se optimizan y convierten a WebP con `Bun.Image`. Los SVGs no deben procesarse con `<photo>`.
 
 ---
 

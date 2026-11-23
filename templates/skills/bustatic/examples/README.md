@@ -156,3 +156,22 @@ export default createOrasStorage({
 });
 ```
 > En plantillas: `<photo key="product/1/portrait" alt="Actual" />` o con tag explícito `<photo key="product/1/portrait:2020" alt="Edición 2020" />`.
+
+---
+
+## 7. Componente SVG Inline con Estilos Scoped (`icons/clipboard.svg` + `clipboard.css`)
+
+```html
+<!-- En src/components/tag-badge.html o en cualquier plantilla -->
+<component src="../icons/clipboard.svg" class="badge-icon" aria-hidden="true" />
+```
+
+Con CSS hermano co-ubicado (`src/icons/clipboard.css`):
+```css
+& {
+  display: inline-block;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+```
+O con `<style scoped>` directamente dentro del archivo SVG. Los atributos como `class`, `width`, `height`, `aria-*` y `role` pasados en `<component>` se fusionan directamente sobre la etiqueta `<svg>` raíz sin duplicar clases.

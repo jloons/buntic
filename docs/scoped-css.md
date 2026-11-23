@@ -67,12 +67,15 @@ En un bloque `<style scoped>` o archivo `.css` hermano, la clase generada (`bs-.
 
 ---
 
-## 📂 2. Archivos CSS Hermanos Co-ubicados (`.html` + `.css`)
+## 📂 2. Archivos CSS Hermanos Co-ubicados (`.html` / `.svg` + `.css`)
 
-Si prefieres separar tu HTML de tu CSS sin escribir `<style scoped>` manualmente, puedes colocar un archivo `.css` hermano con el mismo nombre base junto a **cualquier componente o página** (estática o dinámica):
+Si prefieres separar tu HTML o SVG de tu CSS sin escribir `<style scoped>` manualmente, puedes colocar un archivo `.css` hermano con el mismo nombre base junto a **cualquier componente, página o SVG**:
 
 ```text
 src/
+├── icons/
+│   ├── star.svg
+│   └── star.css             # Se aplica automáticamente como scoped a la raíz <svg>
 ├── components/
 │   ├── product-card.html
 │   └── product-card.css     # Se aplica automáticamente como scoped a la raíz del componente
@@ -86,6 +89,8 @@ src/
 
 ### Regla del Elemento Raíz Único:
 * **Componentes (`components/*.html`):** Si el componente tiene un único elemento contenedor raíz (ej. `<article class="card">...</article>`), Bustatic adjunta el CSS hermano como scoped a ese contenedor.
+* **Iconos SVG (`icons/*.svg`):** El elemento raíz `<svg>` recibe automáticamente el ámbito y las reglas scoped.
+* **Uso en Web Components con DSD:** Si un componente HTML o SVG con estilos scoped se utiliza dentro del template de un Web Component (ej. `tag-badge.html`), sus estilos compilados se inyectan dentro de `<template shadowrootmode="open">`, garantizando aislamiento y visualización correcta sin depender de estilos en `<head>`.
 * **Páginas con `<layout>` (`pages/*.html`):** `<layout src="...">...</layout>` actúa como raíz única; el CSS hermano (así como un `<style scoped>` en el primer nivel de `<layout>`) se inyecta en el `<slot>` por defecto y se vincula automáticamente al contenedor padre del layout (por ejemplo `<main class="bs-...">`).
 * **Páginas independientes con `<!doctype html>`:** Bustatic omite el prólogo `<!doctype html>` y los comentarios HTML, detectando `<html>` como elemento raíz único y aplicando la clase `bs-...` a `<html>`.
 * **Múltiples Raíces (Fragmentos):** Si la plantilla contiene múltiples elementos en el nivel superior (ej. `<p>Uno</p><p>Dos</p>`), Bustatic no puede inferir un único contenedor padre y emitirá una advertencia preventiva `⚠ [Bustatic Warning]`.

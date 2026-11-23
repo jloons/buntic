@@ -215,7 +215,7 @@ export class CssDependencyGraph {
     const rawBase = basename(cssPath, ".css");
 
     // Check same base name
-    const extensions = [".html", ".ts", ".js", ".tsx", ".jsx"];
+    const extensions = [".html", ".svg", ".ts", ".js", ".tsx", ".jsx"];
     for (const ext of extensions) {
       if (vfs.hasFile(join(dir, `${rawBase}${ext}`))) {
         return true;

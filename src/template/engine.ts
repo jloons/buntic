@@ -7,6 +7,7 @@ import {
   extractScopedStyles,
   attachSiblingScopedCss,
   transformScopedCss,
+  findSingleRootElement,
 } from "./scoped-css.ts";
 import { scriptImportsCssFile, findTriadForScript, filenameToTagName, RESERVED_W3C_TAGS } from "./web-components.ts";
 import { CssDependencyGraph } from "./css-graph.ts";
@@ -475,6 +476,7 @@ export class TemplateEngine {
         }
 
         let templateHtml = "<slot></slot>";
+        let scopedDsdCssBlock = "";
         if (triad.htmlPath) {
           let rawHtml = "";
           try {
@@ -485,12 +487,22 @@ export class TemplateEngine {
           rawHtml = await this.resolveComponents(rawHtml, context, triad.htmlPath);
           rawHtml = this.resolveConditionals(rawHtml, context);
           rawHtml = this.interpolate(rawHtml, context);
+
+          if (rawHtml.includes("<style") && rawHtml.includes("scoped")) {
+            const extracted = extractScopedStyles(rawHtml, this.scopeRegistry);
+            rawHtml = extracted.html;
+            if (extracted.scopedRules.length > 0) {
+              scopedDsdCssBlock = `<style data-bustatic="dsd-scoped">\n${extracted.scopedRules.join("\n\n")}\n</style>`;
+            }
+          }
+
           templateHtml = rawHtml.trim();
         }
 
         const shadowParts: string[] = [];
         if (globalCssBlock) shadowParts.push(globalCssBlock);
         if (siblingCssBlock) shadowParts.push(siblingCssBlock);
+        if (scopedDsdCssBlock) shadowParts.push(scopedDsdCssBlock);
         if (templateHtml) shadowParts.push(templateHtml);
 
         const dsdContent = shadowParts.join("\n");
@@ -847,6 +859,47 @@ export class TemplateEngine {
         continue;
       }
 
+      if (ext === ".svg") {
+        let svgContent = await this.vfs.readText(compPath);
+        // Clean XML prologues and doctypes
+        svgContent = svgContent
+          .replace(/<\?xml[\s\S]*?\?>/gi, "")
+          .replace(/<!DOCTYPE[\s\S]*?>/gi, "")
+          .trim();
+
+        // Check for co-located sibling CSS file (e.g. icon.svg + icon.css)
+        const siblingCssPath = compPath.replace(/\.svg$/i, ".css");
+        if (this.vfs.hasFile(siblingCssPath)) {
+          let siblingCss = "";
+          try {
+            siblingCss = await this.cssGraph.flattenCss(siblingCssPath, this.vfs);
+          } catch {
+            siblingCss = await Bun.file(siblingCssPath).text();
+          }
+
+          if (siblingCss.trim().length > 0) {
+            const withScopedCss = attachSiblingScopedCss(svgContent, siblingCss);
+            if (withScopedCss !== null) {
+              svgContent = withScopedCss;
+            } else {
+              const relComp = relative(this.config.root, compPath);
+              const relCss = relative(this.config.root, siblingCssPath);
+              console.warn(
+                `\x1b[33m⚠ [Bustatic Warning]\x1b[0m SVG "${relComp}" has a sibling CSS file ("${relCss}"), but does not have a single root element. Scoped styles were not applied.`
+              );
+            }
+          }
+        }
+
+        const passedProps = { ...item.props };
+        delete passedProps.src;
+
+        svgContent = this.mergeSvgAttributes(svgContent, passedProps);
+
+        result = result.replace(item.fullMatch, svgContent);
+        continue;
+      }
+
       let compTemplate = await this.vfs.readText(compPath);
 
       // Check for co-located sibling CSS file (e.g. footer.html + footer.css)
@@ -944,15 +997,57 @@ export class TemplateEngine {
 
   private parseAttributes(attrString: string): Record<string, string> {
     const attrs: Record<string, string> = {};
-    const attrRegex = /([a-zA-Z0-9_-]+)(?:=["']([^"']*)["'])?/g;
+    const attrRegex = /([a-zA-Z0-9_:-]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
     let match: RegExpExecArray | null;
 
     while ((match = attrRegex.exec(attrString)) !== null) {
       const key = match[1];
-      const val = match[2] !== undefined ? match[2] : "true";
+      const val = match[2] ?? match[3] ?? match[4] ?? "true";
       attrs[key] = val;
     }
     return attrs;
+  }
+
+  private mergeSvgAttributes(svgHtml: string, props: Record<string, string>): string {
+    const root = findSingleRootElement(svgHtml);
+    if (!root) return svgHtml;
+
+    let openTag = root.openTagRaw;
+
+    for (const [key, val] of Object.entries(props)) {
+      if (key === "class") {
+        const classMatch = openTag.match(/\bclass=(["'])(.*?)\1/i);
+        if (classMatch) {
+          const quote = classMatch[1];
+          const existingClasses = classMatch[2].trim();
+          const combined = Array.from(
+            new Set([...existingClasses.split(/\s+/), ...val.split(/\s+/)])
+          ).filter(Boolean).join(" ");
+          openTag = openTag.replace(classMatch[0], `class=${quote}${combined}${quote}`);
+        } else {
+          if (openTag.endsWith("/>")) {
+            openTag = openTag.slice(0, -2).trimEnd() + ` class="${val}"/>`;
+          } else {
+            openTag = openTag.slice(0, -1).trimEnd() + ` class="${val}">`;
+          }
+        }
+      } else {
+        const escapedKey = key.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+        const attrRegex = new RegExp(`\\b${escapedKey}(?:=(?:["'][^"']*["']|[^\\s>]+))?`, "i");
+        const replacement = val === "true" ? `${key}="true"` : `${key}="${val}"`;
+        if (attrRegex.test(openTag)) {
+          openTag = openTag.replace(attrRegex, replacement);
+        } else {
+          if (openTag.endsWith("/>")) {
+            openTag = openTag.slice(0, -2).trimEnd() + ` ${replacement}/>`;
+          } else {
+            openTag = openTag.slice(0, -1).trimEnd() + ` ${replacement}>`;
+          }
+        }
+      }
+    }
+
+    return svgHtml.slice(0, root.openTagStart) + openTag + svgHtml.slice(root.openTagEnd);
   }
 
   public interpolate(html: string, context: Record<string, any>): string {
