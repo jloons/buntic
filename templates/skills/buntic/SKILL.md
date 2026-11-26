@@ -130,30 +130,70 @@ Inyecta en `<head>` el `<title>`, `<link rel="canonical">`, OpenGraph y Twitter 
 <seo title="Catálogo" image-key="banners/catalogo.jpg" />
 ```
 
-### 5. Bucles e Iteración (`<each>`)
+### 5. Bucles e Iteración (`<each>` y fallbacks `<none>`, `<else>`, `<default>`)
 ```html
 <!-- Con Auto-spread automático de claves a las props del componente -->
 <each src="../data/features.json">
   <component src="../components/card.html" />
 </each>
 
-<!-- Con alias explícito -->
+<!-- Con alias explícito y fallbacks -->
 <each in="site.navLinks" as="link">
   <a href="{{ link.url }}">{{ link.label }}</a>
+  <none><p>Sin enlaces disponibles.</p></none>
+  <else><p>Menú no definido.</p></else>
+</each>
+
+<!-- Fallback universal (<default> cubre tanto lista vacía como undefined/null) -->
+<each in="props.items">
+  <li>{{ name }}</li>
+  <default><p>Nada que mostrar.</p></default>
 </each>
 ```
 
-### 6. Renderizado Condicional (`<if>` y atributo `if`)
-```html
-<!-- Atributo condicional: elimina la etiqueta si badge no existe -->
-<span class="badge" if="badge">{{ badge }}</span>
+### 6. Decisiones y Renderizado Condicional (`<if>`, `<unless>`, `<match>` y atributo `if`)
+Todas las etiquetas de control de flujo son de **una sola palabra** (sin guiones, evitando colisiones con Web Components) y soportan **expresiones seguras en `is="..."`** (sin `{{ }}`, sin `eval`: `!`, `===`, `!==`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, paréntesis, rutas anidadas y `.length`) así como **atributos literales tipados estrictos** (`string`, `number`, `boolean`, `min`, `max`):
 
-<!-- Bloque condicional con alternativa -->
-<if is="isLogged">
-  <span>Hola, {{ user.name }}</span>
-<else>
-  <a href="/login">Iniciar sesión</a>
+```html
+<!-- Atributo condicional: elimina la etiqueta si la expresión es falsa -->
+<span class="badge" if="badge">{{ badge }}</span>
+<span class="count" if="items.length > 0 && !isHidden">{{ items.length }}</span>
+
+<!-- Bloque condicional con expresiones seguras y <else> -->
+<if is="age >= 18 && age <= 30">
+  <span>Adulto joven</span>
+  <else>
+    <span>Fuera de rango</span>
+  </else>
 </if>
+
+<!-- Atributos tipados / rango (verificación estricta de tipo, solo literales) -->
+<if is="age" number="0"><span>Recién nacido</span></if>
+<if is="age" min="18" max="30"><span>Adulto joven</span></if>
+<if is="role" string="admin"><span>Admin</span></if>
+<if is="active" boolean="true"><span>Activo</span></if>
+
+<!-- Inverso declarativo con <unless> -->
+<unless is="props.product.inStock">
+  <span class="out-of-stock">Agotado</span>
+</unless>
+
+<!-- Selección múltiple con <match>/<case> (primera coincidencia gana) -->
+<match is="age">
+  <case number="0">Recién nacido</case>
+  <case min="1" max="17">Menor de edad</case>
+  <case min="18" max="64">Adulto</case>
+  <case min="65">Adulto mayor</case>
+  <none>Otro valor</none>
+  <else>Edad no definida</else>
+</match>
+
+<!-- Fallback universal <default> en <match> (cubre <else> y <none>) -->
+<match is="role">
+  <case string="admin">Panel Admin</case>
+  <case string="editor">Panel Editor</case>
+  <default>Invitado</default>
+</match>
 
 <!-- Operador de respaldo en texto -->
 <p>Autor: {{ author ?? "Anónimo" }}</p>

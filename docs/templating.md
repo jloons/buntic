@@ -1,6 +1,6 @@
 # 📑 Guía de Plantillas y Componentes en Buntic
 
-Buntic utiliza HTML estándar complementado con etiquetas especiales de tiempo de compilación (`<layout>`, `<component>`, `<slot>`, `<each>`, `<if>`) procesadas a velocidad de C++ con el runtime de Bun.
+Buntic utiliza HTML estándar complementado con etiquetas especiales de tiempo de compilación de una sola palabra (`<layout>`, `<component>`, `<slot>`, `<each>`, `<if>`, `<unless>`, `<match>`, `<case>`, `<else>`, `<none>`, `<default>`) procesadas a velocidad nativa con el runtime de Bun sin entrar en conflicto con Web Components (que requieren guion) ni con HTML5/SVG.
 
 ---
 
@@ -171,36 +171,110 @@ Si el bloque contiene un `<component>`, las claves del objeto JSON se inyectan a
 </nav>
 ```
 
+### Fallbacks de 3 niveles en `<each>` (`<none>`, `<else>`, `<default>`):
+Cuando una colección puede estar vacía o no definida, `<each>` soporta bloques fallback directos:
+- `<none>`: la lista existe y es un array, pero tiene **0 elementos** (`[]`).
+- `<else>`: la fuente en `in="..."` **no está definida** (`undefined` o `null`). *(Si no declaras `<else>` ni `<default>`, Buntic lanza un error detallado para ayudarte a detectar typos).*
+- `<default>`: **fallback universal** que cubre `<none>` y `<else>` cuando no se declaran por separado.
+
+```html
+<!-- Distinguiendo lista vacía vs dato no definido -->
+<each in="props.workers">
+  <li>{{ name }}</li>
+  <none>
+    <p>No hay trabajadores registrados todavía.</p>
+  </none>
+  <else>
+    <p>Lista de trabajadores no disponible.</p>
+  </else>
+</each>
+
+<!-- O usando un único fallback universal -->
+<each in="props.workers">
+  <li>{{ name }}</li>
+  <default>
+    <p>Sin elementos para mostrar.</p>
+  </default>
+</each>
+```
+
 ---
 
-## 4. Renderizado Condicional y Atributos Opcionales
+## 4. Renderizado Condicional, Expresiones Seguras y `<match>`
 
-Para evitar dejar elementos vacíos en el DOM cuando un atributo opcional no viene en los datos:
+Buntic ofrece un sistema híbrido de decisiones sin `eval`: **expresiones seguras en `is="..."`** (sin `{{ }}`) y **atributos literales tipados/rango** con verificación estricta de tipo (`string`, `number`, `boolean`, `min`, `max`).
 
 ### Opción A: Atributo condicional `if="..."` (en cualquier etiqueta)
-Elimina **todo el elemento o subcomponente** si la variable no existe o es falsa/vacía:
+Elimina **todo el elemento o subcomponente** si la expresión es falsa o vacía:
 
 ```html
 <!-- Si badge no viene en los datos, todo el <span> desaparece sin dejar rastro -->
 <span class="badge" if="badge">{{ badge }}</span>
 
+<!-- Soporta negación y expresiones seguras -->
+<span class="badge" if="items.length > 0 && !isArchived">{{ items.length }}</span>
+
 <!-- Funciona en subcomponentes enteros -->
 <component src="./boton.html" if="url" href="{{ url }}" />
 ```
 
-### Opción B: Bloque condicional `<if is="...">` con `<else>`
-Para bloques multilínea o bifurcaciones de lógica:
+### Opción B: Bloque condicional `<if is="...">` con `<else>` y `<unless>`
+Soporta anidamiento balanceado, expresiones seguras (`!`, `===`, `!==`, `==`, `!=`, `<`, `<=`, `>`, `>=`, `&&`, `||`, paréntesis, rutas anidadas y `.length`) y atributos tipados estrictos:
 
 ```html
-<if is="isOnline">
-  <span class="status online">En Línea</span>
+<!-- Expresiones seguras en is="..." (sin {{ }}) -->
+<if is="age >= 18 && age <= 30">
+  <span>Adulto joven</span>
   <else>
-    <span class="status offline">Desconectado</span>
+    <span>Fuera de rango</span>
   </else>
 </if>
+
+<!-- Comparación entre variables -->
+<if is="age >= config.allowed_age">
+  <span>Acceso permitido</span>
+</if>
+
+<!-- Atributos literales tipados y de rango (verificación estricta de tipo) -->
+<if is="age" number="0"><span>Recién nacido</span></if>
+<if is="age" min="18" max="30"><span>Adulto joven</span></if>
+<if is="role" string="admin"><span>Administrador</span></if>
+<if is="active" boolean="true"><span>Activo</span></if>
+
+<!-- <unless>: inverso declarativo de <if> -->
+<unless is="props.product.inStock">
+  <span class="out-of-stock">Agotado</span>
+</unless>
 ```
 
-### Opción C: Operador de Respaldo (`??`)
+> [!NOTE]
+> Los atributos `string`, `number`, `boolean`, `min` y `max` aceptan únicamente **valores literales** y realizan una comprobación estricta de tipo (`typeof`): por ejemplo, si `age` es el texto `"20"` en lugar del número `20`, `<if is="age" min="18">` evalúa a `false`. Los rangos `min`/`max` son inclusivos (`>=` / `<=`). Para comparar dos variables entre sí, utiliza expresiones en `is="..."`.
+
+### Opción C: Selección múltiple con `<match>`, `<case>`, `<none>`, `<else>` y `<default>`
+Evalúa cada `<case>` en orden y detiene la evaluación en la **primera coincidencia** (sin *fallthrough*). Utiliza `<match>` (en lugar de `<switch>`) para evitar cualquier colisión con el elemento `<switch>` de SVG:
+
+```html
+<match is="age">
+  <case number="0">Recién nacido</case>
+  <case min="1" max="17">Menor de edad</case>
+  <case min="18" max="64">Adulto</case>
+  <case min="65">Adulto mayor</case>
+  <none>Valor fuera de los rangos definidos</none>
+  <else>Edad no especificada</else>
+</match>
+
+<match is="role">
+  <case string="admin">Panel Admin</case>
+  <case string="editor">Panel Editor</case>
+  <default>Invitado</default>
+</match>
+```
+
+**Prioridad de fallbacks en `<match>`:**
+- Si el valor de `is="..."` es `undefined` o `null`: renderiza `<else>` → si no existe, `<default>` → si no existe, nada (`""`).
+- Si el valor está definido pero ningún `<case>` coincide: renderiza `<none>` → si no existe, `<default>` → si no existe, nada (`""`).
+
+### Opción D: Operador de Respaldo (`??`)
 Para textos simples con valor por defecto cuando no necesitas borrar la etiqueta contenedora:
 
 ```html
@@ -209,7 +283,18 @@ Para textos simples con valor por defecto cuando no necesitas borrar la etiqueta
 
 ---
 
-## 5. Interpolación de Variables
+## 5. Diagnóstico Detallado de Errores en Plantillas
+
+Cuando ocurre un error de plantilla (archivo faltante en `<layout>`, `<component>` o `<each>`, error de parseo JSON, expresión inválida en `is="..."`, o literal inválido como `min="abc"`), Buntic genera un diagnóstico estructurado tanto en `buntic build` como en el navegador en `buntic dev` (con recarga automática al guardar la corrección):
+
+- **Plantilla exacta, línea y columna** (`src/pages/workers.html:3:5`).
+- **Fragmento de código marcado (*code frame*)** con indicador `>` y subrayado `^^^^` sobre la etiqueta exacta.
+- **Archivo resuelto y causa original** cuando aplica carga de archivos (`src="..."`).
+- **Sugerencia accionable (`Hint`)** para corregir el problema rápidamente.
+
+---
+
+## 6. Interpolación de Variables
 
 En cualquier plantilla o componente puedes interpolar valores directamente con la sintaxis de doble llave `{{ variable }}`:
 

@@ -8,6 +8,7 @@ import type { SeoMetadataEngine } from "../seo/metadata.ts";
 import { generateRobotsTxt } from "../seo/robots.ts";
 import { generateSitemapXml } from "../seo/sitemap.ts";
 import type { TemplateEngine } from "../template/engine.ts";
+import { BunticTemplateError } from "../template/errors.ts";
 import { escapeHtml, injectBeforeBodyEnd } from "../utils/html.ts";
 import { getErrorMessage } from "../utils/logger.ts";
 import { isPathInside } from "../utils/paths.ts";
@@ -174,10 +175,103 @@ export function getMimeType(path: string): string {
   return "application/octet-stream";
 }
 
+function formatCodeFrameHtml(codeFrame: string): string {
+  return codeFrame
+    .split("\n")
+    .map((line) => {
+      const escaped = escapeHtml(line);
+      if (line.startsWith("  > ")) {
+        return `<span class="error-line">${escaped}</span>`;
+      }
+      if (/^\s+\|\s+\^+$/.test(line)) {
+        return `<span class="error-caret">${escaped}</span>`;
+      }
+      return escaped;
+    })
+    .join("\n");
+}
+
 export function renderErrorResponse(title: string, err: unknown): Response {
   const safeTitle = escapeHtml(title);
   const safeMsg = escapeHtml(getErrorMessage(err));
-  return new Response(`<h1>${safeTitle}</h1><pre>${safeMsg}</pre>`, {
+
+  let bodyContent: string;
+  if (err instanceof BunticTemplateError) {
+    const metaRows: string[] = [];
+    if (err.filePath) {
+      const coords = err.line
+        ? `:${err.line}${err.column ? `:${err.column}` : ""}`
+        : "";
+      metaRows.push(
+        `<div class="meta-row"><span class="meta-label">File</span><code>${escapeHtml(err.filePath + coords)}</code></div>`
+      );
+    } else if (err.line) {
+      const colText = err.column ? `, column ${err.column}` : "";
+      metaRows.push(
+        `<div class="meta-row"><span class="meta-label">Location</span><code>line ${err.line}${colText}</code></div>`
+      );
+    }
+    if (err.resolvedTarget) {
+      metaRows.push(
+        `<div class="meta-row"><span class="meta-label">Resolved</span><code>${escapeHtml(err.resolvedTarget)}</code></div>`
+      );
+    }
+    if (err.causeMessage) {
+      metaRows.push(
+        `<div class="meta-row"><span class="meta-label">Cause</span><span class="cause-text">${escapeHtml(err.causeMessage)}</span></div>`
+      );
+    }
+
+    const metaBlock = metaRows.length > 0 ? `<div class="meta">${metaRows.join("")}</div>` : "";
+    const frameBlock = err.codeFrame
+      ? `<pre class="code-frame">${formatCodeFrameHtml(err.codeFrame)}</pre>`
+      : "";
+    const hintBlock = err.hint
+      ? `<div class="hint"><strong>Hint:</strong> ${escapeHtml(err.hint).replace(/\n/g, "<br>")}</div>`
+      : "";
+
+    bodyContent = `
+      <p class="summary">${escapeHtml(err.summary)}</p>
+      ${metaBlock}
+      ${frameBlock}
+      ${hintBlock}
+    `;
+  } else {
+    bodyContent = `<pre class="code-frame">${safeMsg}</pre>`;
+  }
+
+  const errorHtml = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${safeTitle} | Buntic Dev</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 2.5rem 1.5rem; margin: 0; }
+    .card { max-width: 820px; margin: 0 auto; background: #1e293b; padding: 2rem; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.35); }
+    h1 { color: #f43f5e; margin: 0 0 1rem; font-size: 1.5rem; }
+    .summary { font-size: 1.05rem; color: #fecdd3; margin: 0 0 1.25rem; line-height: 1.5; font-weight: 500; }
+    .meta { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 1.25rem; padding: 0.9rem 1rem; background: #0f172a; border-radius: 8px; border: 1px solid #334155; }
+    .meta-row { display: flex; align-items: baseline; gap: 0.75rem; font-size: 0.92rem; flex-wrap: wrap; }
+    .meta-label { color: #94a3b8; min-width: 72px; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; }
+    code { color: #38bdf8; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.9rem; word-break: break-all; }
+    .cause-text { color: #fda4af; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.9rem; }
+    pre.code-frame { background: #020617; color: #e2e8f0; padding: 1rem 1.1rem; border-radius: 8px; border: 1px solid #334155; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.9rem; line-height: 1.6; margin: 0 0 1.25rem; }
+    .error-line { display: inline-block; min-width: 100%; background: rgba(244, 63, 94, 0.18); color: #fff1f2; font-weight: 600; }
+    .error-caret { color: #f43f5e; font-weight: 700; }
+    .hint { background: rgba(56, 189, 248, 0.1); border-left: 3px solid #38bdf8; padding: 0.85rem 1rem; border-radius: 0 8px 8px 0; color: #e0f2fe; font-size: 0.92rem; line-height: 1.55; }
+    .hint strong { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>${safeTitle}</h1>
+    ${bodyContent}
+  </div>
+  ${LIVE_RELOAD_SCRIPT}
+</body>
+</html>`;
+
+  return new Response(errorHtml, {
     status: 500,
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });

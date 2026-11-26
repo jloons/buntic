@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { ResolvedConfig } from "../types.ts";
 import { loadPublicEnv, isReservedNamespace } from "../env.ts";
 import { logError, logWarn } from "../utils/logger.ts";
+import { BunticTemplateError, formatTemplatePath } from "./errors.ts";
 import type { VirtualFileSystem } from "./vfs.ts";
 
 export type TemplateContext = Record<string, any>;
@@ -57,8 +58,15 @@ export async function loadGlobalData(
       if (isJson) {
         try {
           data[key] = await vfs.readJson(fullPath);
-        } catch {
-          data[key] = await Bun.file(fullPath).json();
+        } catch (err: unknown) {
+          const relPath = formatTemplatePath(fullPath, config.root);
+          throw new BunticTemplateError({
+            message: `[Buntic Error] Failed to parse global JSON data file "${relPath}"`,
+            location: { filePath: fullPath },
+            projectRoot: config.root,
+            cause: err,
+            hint: `Check that "${relPath}" contains valid JSON syntax.`,
+          });
         }
       } else if (isModule) {
         try {
@@ -78,7 +86,10 @@ export async function loadGlobalData(
       }
     }
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes("[Buntic Error]")) {
+    if (
+      err instanceof BunticTemplateError ||
+      (err instanceof Error && err.message.includes("[Buntic Error]"))
+    ) {
       throw err;
     }
     // Ignored if data directory cannot be read

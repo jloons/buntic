@@ -23,6 +23,11 @@ export type {
 
 export { defineConfig, resolveConfig, findProjectRoot } from "./config.ts";
 export { TemplateEngine } from "./template/engine.ts";
+export {
+  BunticTemplateError,
+  type TemplateErrorLocation,
+  type TemplateErrorOptions,
+} from "./template/errors.ts";
 export { loadPublicEnv, isReservedNamespace, parseEnvContent } from "./env.ts";
 export {
   resolveAllRoutes,

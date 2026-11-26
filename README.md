@@ -17,7 +17,7 @@ Sin extensiones de archivo propietarias, sin `node_modules` de cientos de megaby
 - 🔍 **Suite SEO Out-of-the-Box:** Componente `<seo>`, generación dinámica de `sitemap.xml`, `robots.txt` configurable y feeds RSS 2.0 y Atom 1.0.
 - 📱 **Tarjetas Sociales Automáticas:** Generación de tarjetas OpenGraph y Twitter Cards a tamaño estándar 1200x630 WebP a partir de imágenes locales o remotas en S3/OCI.
 - 🚀 **Enrutamiento Dinámico, SQL y Redis:** Parámetros en rutas (`pages/[slug].html`), loaders `.data.ts`, integración directa con SQLite, PostgreSQL y Redis, y paginación declarativa.
-- 📑 **Plantillas Estándar:** Usa `<layout>`, `<slot>`, `<each>` y `<if>` directamente en HTML estándar.
+- 📑 **Plantillas Declarativas y Control de Flujo:** Usa `<layout>`, `<slot>`, `<each>`, `<if>`, `<unless>` y `<match>`/`<case>` directamente en HTML estándar, con expresiones seguras sin `eval`, atributos tipados/rango (`string`, `number`, `boolean`, `min`, `max`), fallbacks uniformes (`<else>`, `<none>`, `<default>`) y reportes de error con archivo, línea exacta, *code frame* y sugerencias.
 - 🧩 **Componentes SVG Nativos:** Inclusión inline con `<component src="...svg" />`, passthrough de atributos (`class`, `width`, `aria-*`), `<style scoped>`, CSS hermano co-ubicado (`.svg` + `.css`) y compatibilidad con DSD.
 - 🎨 **Estilos Scoped Nativos:** Escribe `<style scoped>` dentro de cualquier elemento con sintaxis `&` o `:host`, deduplicación automática y cero FOUC.
 - 🔄 **Live-Reload Integrado:** Servidor de desarrollo con WebSockets nativos y recarga en caliente automática.

@@ -145,8 +145,13 @@ export async function resolveWebComponentsInHtml(options: {
         } catch {
           rawHtml = await Bun.file(triad.htmlPath).text();
         }
+        const originalRawHtml = rawHtml;
         rawHtml = await resolveComponentsFn(rawHtml, context, triad.htmlPath);
-        rawHtml = resolveConditionals(rawHtml, context);
+        rawHtml = resolveConditionals(rawHtml, context, {
+          filePath: triad.htmlPath,
+          source: originalRawHtml,
+          projectRoot: config.root,
+        });
         rawHtml = interpolateTemplate(rawHtml, context);
 
         if (rawHtml.includes("<style") && rawHtml.includes("scoped")) {
